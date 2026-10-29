@@ -220,10 +220,8 @@ function Deltas({ items }: { items: { id: number; d: number }[] }) {
 
 /* ========================================================================
    SPLASH / LOADING SCREEN
-   Counts 0 → 100 (waits at 92 until data is loaded), then colored strips
-   wipe upward to reveal the page.
    ======================================================================== */
-function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
+function Splash({ loading, onDone }: { loading: boolean; onDone: (arg?: any) => void }) {
   const [pct, setPct] = useState(0)
   const [out, setOut] = useState(false)
   const loadingRef = useRef(loading)
@@ -253,7 +251,6 @@ function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
 
   return (
     <div className="vote-root fixed inset-0 z-[100] overflow-hidden" style={{ background: 'transparent' }} aria-label="Loading">
-      {/* curtain strips */}
       <div className="absolute inset-0 flex">
         {BAR_COLORS.map((c, i) => (
           <div
@@ -270,7 +267,6 @@ function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
         ))}
       </div>
 
-      {/* floating emoji */}
       {['✨', '💖', '🔥', '⭐', '🎉'].map((e, i) => (
         <span
           key={e}
@@ -301,7 +297,6 @@ function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
           <span className="text-[0.35em] text-[var(--muted)]">%</span>
         </div>
 
-        {/* equalizer bars that fill with progress */}
         <div className="flex items-end gap-2 sm:gap-3 h-20">
           {BAR_COLORS.map((c, i) => (
             <span
@@ -328,8 +323,7 @@ function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
 }
 
 /* ========================================================================
-   BACKDROP: aurora blobs, parallax shapes, cursor glow, click ripples
-   (all driven by CSS variables set from one rAF loop, no re-render per frame)
+   BACKDROP
    ======================================================================== */
 function Backdrop() {
   const root = useRef<HTMLDivElement>(null)
@@ -381,12 +375,10 @@ function Backdrop() {
 
   return (
     <div ref={root} className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-      {/* aurora */}
       <div className="absolute w-[55vw] h-[55vw] rounded-full blur-[110px] opacity-40" style={blob('#ff6b9d', 'left:-10vw;top:-10vw', 'aurora1')} />
       <div className="absolute w-[50vw] h-[50vw] rounded-full blur-[110px] opacity-35" style={blob('#7c5cff', 'right:-12vw;top:20vh', 'aurora2')} />
       <div className="absolute w-[45vw] h-[45vw] rounded-full blur-[110px] opacity-35" style={blob('#19c3a0', 'left:20vw;bottom:-15vw', 'aurora3')} />
 
-      {/* parallax floating shapes */}
       {SHAPES.map((s, i) => (
         <span
           key={i}
@@ -405,7 +397,6 @@ function Backdrop() {
         </span>
       ))}
 
-      {/* cursor glow (mouse devices only) */}
       <div
         className="hidden [@media(pointer:fine)]:block absolute left-0 top-0 w-[480px] h-[480px] rounded-full"
         style={{
@@ -414,7 +405,6 @@ function Backdrop() {
         }}
       />
 
-      {/* click ripples */}
       {rings.map((r) => (
         <span
           key={r.id}
@@ -429,7 +419,7 @@ function Backdrop() {
 }
 
 /* ========================================================================
-   SMALL UI: scroll progress, brand chip, toast, poll dots
+   SMALL UI
    ======================================================================== */
 function ScrollBar() {
   const ref = useRef<HTMLDivElement>(null)
@@ -561,7 +551,6 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
         }}
         className="group relative flex-1 w-full flex flex-col justify-end items-center cursor-pointer select-none outline-none active:scale-[0.96] transition-transform duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[#15132b] rounded-[1.75rem]"
       >
-        {/* PERCENT + VOTES */}
         <div className="relative text-center mb-5">
           <Deltas items={deltas} />
           {isLeader && (
@@ -586,7 +575,6 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
           </span>
         </div>
 
-        {/* CARD (scale → idle float → 3D tilt) */}
         <div
           className="w-full"
           style={{
@@ -621,7 +609,6 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
                     {option.text}
                   </div>
                 )}
-                {/* shine sweep on hover */}
                 <span className="pointer-events-none absolute inset-0 -translate-x-full skew-x-12 bg-gradient-to-r from-transparent via-white/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                 {isSelected && (
                   <span
@@ -646,7 +633,6 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
         <Bursts ids={bursts} color={color} className="left-1/2 bottom-[40%]" />
       </div>
 
-      {/* BASELINE + LABEL */}
       <div className="w-full">
         <div className="h-[3px] w-full rounded-full bg-[var(--ink)]" />
         <div className="mt-6 flex justify-center">
@@ -760,7 +746,7 @@ interface StageProps {
 
 function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }: StageProps) {
   const [ref, seen] = useInView<HTMLElement>(0.15)
-  const live = ready && seen // bars + numbers animate in when scrolled into view
+  const live = ready && seen
   const totalVotes = options.reduce((a, o) => a + o.votes, 0)
   const maxVotes = options.reduce((m, o) => Math.max(m, o.votes), 0)
   const totalTick = useTicker(live ? totalVotes : 0)
@@ -805,7 +791,6 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
             ))}
           </h1>
 
-          {/* hand-drawn underline that draws itself */}
           <svg viewBox="0 0 200 14" className="w-40 sm:w-56 -mt-2" fill="none" aria-hidden>
             <path
               d="M2 8 Q 14 0 26 8 T 50 8 T 74 8 T 98 8 T 122 8 T 146 8 T 170 8 T 198 8"
@@ -819,7 +804,6 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
           </svg>
         </div>
 
-        {/* DESKTOP / TABLET */}
         <div
           className="hidden md:flex h-[var(--H)] items-stretch justify-center gap-8 lg:gap-12 pt-16"
           style={{ '--H': 'clamp(560px, 78vh, 720px)' } as CSSProperties}
@@ -829,7 +813,6 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
           ))}
         </div>
 
-        {/* PHONE */}
         <div className="md:hidden flex flex-col gap-4">
           {options.map((option, i) => (
             <OptionRow key={option.id} {...itemProps(option, i)} />
@@ -853,10 +836,9 @@ export default function Home() {
   const [userVotes, setUserVotes] = useState<Record<string, string>>({})
   const toastTimer = useRef<ReturnType<typeof setTimeout>>()
 
-  const ready = splashGone // page animations start once the curtain has lifted
+  const ready = splashGone
   const handleSplashDone = useCallback(() => setSplashGone(true), [])
 
-  /* 1. FETCH + REALTIME */
   useEffect(() => {
     async function fetchData() {
       const { data: pollsData } = await supabase.from('polls').select('*')
@@ -879,7 +861,6 @@ export default function Home() {
     }
   }, [])
 
-  /* 2. Track which poll is on screen (for the side dots) */
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>('[data-poll]'))
     if (!els.length) return
@@ -891,7 +872,6 @@ export default function Home() {
     return () => io.disconnect()
   }, [polls.length, splashGone])
 
-  /* 3. Vote / un-vote */
   const showToast = (msg: string) => {
     clearTimeout(toastTimer.current)
     setToast({ id: Date.now(), msg })
@@ -905,7 +885,7 @@ export default function Home() {
     const previousId = userVotes[pollId]
     const current = options.find((o) => o.id === optionId)
     if (!current) return
-    navigator.vibrate?.(14) // tiny haptic tap on phones that support it
+    navigator.vibrate?.(14)
 
     if (previousId === optionId) {
       setUserVotes((prev) => {
@@ -935,7 +915,6 @@ export default function Home() {
     await Promise.all(jobs)
   }
 
-  /* 4. Render */
   return (
     <main className="vote-root min-h-screen relative">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
