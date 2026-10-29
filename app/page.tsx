@@ -499,11 +499,12 @@ interface ItemProps {
   ratio: number
   isLeader: boolean
   isSelected: boolean
+  hasVotedAny: boolean
   ready: boolean
   onVote: () => void
 }
 
-function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSelected, ready, onVote }: ItemProps) {
+function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSelected, hasVotedAny, ready, onVote }: ItemProps) {
   const pctTick = useTicker(ready ? percentage : 0)
   const votesTick = useTicker(ready ? option.votes : 0)
   const deltas = useDeltas(option.votes, ready)
@@ -511,6 +512,7 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
   const tiltRef = useRef<HTMLDivElement>(null)
 
   const handleClick = () => {
+    if (hasVotedAny) return // locked once user has already voted for this poll
     if (!isSelected) fire()
     onVote()
   }
@@ -549,7 +551,9 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
             handleClick()
           }
         }}
-        className="group relative flex-1 w-full flex flex-col justify-end items-center cursor-pointer select-none outline-none active:scale-[0.96] transition-transform duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[#15132b] rounded-[1.75rem]"
+        className={`group relative flex-1 w-full flex flex-col justify-end items-center select-none outline-none rounded-[1.75rem] ${
+          hasVotedAny ? 'cursor-default' : 'cursor-pointer active:scale-[0.96] transition-transform duration-150'
+        }`}
       >
         <div className="relative text-center mb-5">
           <Deltas items={deltas} />
@@ -615,7 +619,7 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
                     className="absolute top-3 left-3 bg-white text-xs font-bold px-3 py-1 rounded-full border-2 border-[var(--ink)]"
                     style={{ animation: 'pop 500ms ease-out' }}
                   >
-                    your pick ✓
+                    locked pick ✓
                   </span>
                 )}
               </div>
@@ -657,12 +661,13 @@ function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSel
 /* ========================================================================
    PHONE: ONE OPTION ROW
    ======================================================================== */
-function OptionRow({ option, index, color, percentage, isLeader, isSelected, ready, onVote }: ItemProps) {
+function OptionRow({ option, index, color, percentage, isLeader, isSelected, hasVotedAny, ready, onVote }: ItemProps) {
   const pctTick = useTicker(ready ? percentage : 0)
   const deltas = useDeltas(option.votes, ready)
   const { bursts, fire } = useBursts()
 
   const handleClick = () => {
+    if (hasVotedAny) return
     if (!isSelected) fire()
     onVote()
   }
@@ -670,10 +675,13 @@ function OptionRow({ option, index, color, percentage, isLeader, isSelected, rea
   return (
     <button
       type="button"
+      disabled={hasVotedAny}
       aria-pressed={isSelected}
       aria-label={`Vote for ${option.text}`}
       onClick={handleClick}
-      className="relative w-full text-left rounded-2xl border-2 border-[var(--ink)] bg-white p-3 active:scale-[0.97] transition-[transform,box-shadow] duration-150 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#15132b]"
+      className={`relative w-full text-left rounded-2xl border-2 border-[var(--ink)] bg-white p-3 outline-none ${
+        hasVotedAny ? 'cursor-default' : 'active:scale-[0.97] transition-[transform,box-shadow] duration-150'
+      }`}
       style={{
         boxShadow: isSelected ? `5px 5px 0 ${color}, 5px 5px 0 2px var(--ink)` : isLeader ? `4px 4px 0 ${color}` : '3px 3px 0 var(--ink)',
         animation: ready ? `rise 650ms ${index * 90}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
@@ -707,7 +715,7 @@ function OptionRow({ option, index, color, percentage, isLeader, isSelected, rea
           </div>
           <p className="mt-1.5 text-xs font-medium text-[var(--muted)] tabular-nums">
             {option.votes} {option.votes === 1 ? 'vote' : 'votes'}
-            {isSelected && <span className="text-[var(--ink)] font-bold"> · your pick ✓</span>}
+            {isSelected && <span className="text-[var(--ink)] font-bold"> · locked pick ✓</span>}
           </p>
         </div>
 
@@ -752,6 +760,8 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
   const totalTick = useTicker(live ? totalVotes : 0)
   const words = poll.question.split(' ')
 
+  const hasVotedAny = Boolean(selectedOptionId)
+
   const itemProps = (option: Option, i: number): ItemProps => ({
     option,
     index: i,
@@ -760,6 +770,7 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
     ratio: maxVotes > 0 ? option.votes / maxVotes : 0,
     isLeader: maxVotes > 0 && option.votes === maxVotes,
     isSelected: selectedOptionId === option.id,
+    hasVotedAny,
     ready: live,
     onVote: () => onVote(option.id),
   })
@@ -775,6 +786,7 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
             <span className="w-2.5 h-2.5 rounded-full bg-[#ff6b9d]" style={{ animation: 'live 1.4s ease-in-out infinite' }} />
             <span className="text-sm font-bold tabular-nums">
               {totalTick} {totalVotes === 1 ? 'vote' : 'votes'} live
+              {hasVotedAny && ' · vote locked 🔒'}
             </span>
           </div>
 
@@ -833,8 +845,19 @@ export default function Home() {
   const [splashGone, setSplashGone] = useState(false)
   const [activePoll, setActivePoll] = useState(0)
   const [toast, setToast] = useState<{ id: number; msg: string } | null>(null)
-  const [userVotes, setUserVotes] = useState<Record<string, string>>({})
- const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
+  // Load initial voted status from browser localStorage so refreshes remember the vote
+  const [userVotes, setUserVotes] = useState<Record<string, string>>(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      const saved = localStorage.getItem('vibe_vote_user_votes')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const ready = splashGone
   const handleSplashDone = useCallback(() => setSplashGone(true), [])
@@ -873,9 +896,9 @@ export default function Home() {
   }, [polls.length, splashGone])
 
   const showToast = (msg: string) => {
-  if (toastTimer.current !== null) {
-  clearTimeout(toastTimer.current)
-}
+    if (toastTimer.current !== null) {
+      clearTimeout(toastTimer.current)
+    }
     setToast({ id: Date.now(), msg })
     toastTimer.current = setTimeout(() => setToast(null), 1900)
   }
@@ -883,38 +906,32 @@ export default function Home() {
   const adjustLocal = (optionId: string, delta: number) =>
     setOptions((prev) => prev.map((o) => (o.id === optionId ? { ...o, votes: Math.max(0, o.votes + delta) } : o)))
 
+  // Permanent Vote Cast (No un-voting or switching allowed once cast)
   const handleVoteToggle = async (pollId: string, optionId: string) => {
-    const previousId = userVotes[pollId]
+    // If the user already voted for this poll, block any further changes completely
+    if (userVotes[pollId]) {
+      showToast('your vote is already locked in 🔒')
+      return
+    }
+
     const current = options.find((o) => o.id === optionId)
     if (!current) return
     navigator.vibrate?.(14)
 
-    if (previousId === optionId) {
-      setUserVotes((prev) => {
-        const copy = { ...prev }
-        delete copy[pollId]
-        return copy
-      })
-      adjustLocal(optionId, -1)
-      showToast('vote removed')
-      await supabase.from('options').update({ votes: Math.max(0, current.votes - 1) }).eq('id', optionId)
-      return
-    }
+    // Save choice permanently to state and localStorage
+    const newVotesMap = { ...userVotes, [pollId]: optionId }
+    setUserVotes(newVotesMap)
+    try {
+      localStorage.setItem('vibe_vote_user_votes', JSON.stringify(newVotesMap))
+    } catch {}
 
-    const jobs: PromiseLike<unknown>[] = []
-    if (previousId) {
-      const prevOption = options.find((o) => o.id === previousId)
-      if (prevOption) {
-        adjustLocal(previousId, -1)
-        jobs.push(supabase.from('options').update({ votes: Math.max(0, prevOption.votes - 1) }).eq('id', previousId))
-      }
-    }
-
-    setUserVotes((prev) => ({ ...prev, [pollId]: optionId }))
     adjustLocal(optionId, 1)
-    showToast(previousId ? 'switched it up 🔄' : TOASTS[Math.floor(Math.random() * TOASTS.length)])
-    jobs.push(supabase.from('options').update({ votes: current.votes + 1 }).eq('id', optionId))
-    await Promise.all(jobs)
+    showToast(TOASTS[Math.floor(Math.random() * TOASTS.length)])
+
+    await supabase
+      .from('options')
+      .update({ votes: current.votes + 1 })
+      .eq('id', optionId)
   }
 
   return (
