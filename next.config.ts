@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  allowedDevOrigins: ["192.168.1.15"], // <-- Added this line to allow your phone to connect
+  output: 'export', // <-- Required for GitHub Pages static export
+  images: {
+    unoptimized: true, // <-- Required since GitHub Pages doesn't support Next.js image optimization servers
+  },
   experimental: {
     agentFeedback: true,
   },
