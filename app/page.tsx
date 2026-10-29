@@ -63,7 +63,7 @@ const CSS = `
   transform: translateX(-100%); animation: sweep 2.2s ease-in-out infinite;
 }
 .grain {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.5'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.12'/></svg>");
   mix-blend-mode: multiply; opacity: .12;
 }
 
@@ -221,7 +221,7 @@ function Deltas({ items }: { items: { id: number; d: number }[] }) {
 /* ========================================================================
    SPLASH / LOADING SCREEN
    ======================================================================== */
-function Splash({ loading, onDone }: { loading: boolean; onDone: (arg?: any) => void }) {
+function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
   const [pct, setPct] = useState(0)
   const [out, setOut] = useState(false)
   const loadingRef = useRef(loading)
@@ -834,7 +834,7 @@ export default function Home() {
   const [activePoll, setActivePoll] = useState(0)
   const [toast, setToast] = useState<{ id: number; msg: string } | null>(null)
   const [userVotes, setUserVotes] = useState<Record<string, string>>({})
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>()
+ const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const ready = splashGone
   const handleSplashDone = useCallback(() => setSplashGone(true), [])
@@ -873,7 +873,9 @@ export default function Home() {
   }, [polls.length, splashGone])
 
   const showToast = (msg: string) => {
-    clearTimeout(toastTimer.current)
+  if (toastTimer.current !== null) {
+  clearTimeout(toastTimer.current)
+}
     setToast({ id: Date.now(), msg })
     toastTimer.current = setTimeout(() => setToast(null), 1900)
   }
