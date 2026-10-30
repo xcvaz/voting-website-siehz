@@ -747,11 +747,19 @@ export default function Home() {
           />
         ))}
 
-        {results.length > 0 && (
+                {results.length > 0 && (
           <footer className="max-w-4xl mx-auto px-5 sm:px-10 py-20 text-center">
             <p className="display text-2xl sm:text-4xl font-extrabold">{FOOTER_TEXT}</p>
           </footer>
         )}
+
+        {/* Watermark: always the very last thing on the page */}
+        <div className="border-t-2 border-[var(--ink)]/10 px-5 py-6 text-center">
+          <p className="display text-sm font-bold tracking-wide text-[var(--muted)]">
+            A product of <span className="text-[var(--ink)]">Siehz</span>.
+		By Jes.
+          </p>
+        </div>
       </div>
     </main>
   )
