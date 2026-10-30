@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CSSProperties, PointerEvent as RPointerEvent } from 'react'
+import type { CSSProperties } from 'react'
 import { supabase } from '@/utils/supabase'
 
 /* ========================================================================
@@ -23,99 +23,67 @@ interface Option {
 /* ========================================================================
    LOOK & FEEL — EDIT HERE
    ======================================================================== */
+const TAB_TITLE = 'Association Election'
+const TAB_EMOJI = '👑'
+const BRAND = 'Siehz'
 
-// ✏️ CHANGE THE BROWSER TAB TITLE HERE (replaces "Create Next App")
-const TAB_TITLE = 'Siehz | live vote'
-
-// ✏️ CHANGE THE BROWSER TAB ICON HERE (any single emoji)
-const TAB_EMOJI = '✨'
-
-const BRAND = 'Siehz' // shown in splash + top-left chip
-
-// ✏️ LANDING PAGE TEXT — change anything here
-const LANDING_EYEBROW = 'ECE Department'
-const LANDING_SUBTEXT = 'Pick your choices, make them count, and watch the next semester’s lineup take shape in real time.'
-const LANDING_BUTTON = 'Drop Your Vote'
+const HERO_EYEBROW = 'ECE Department · Election closed'
+const HERO_SUBTEXT = 'Every vote is counted. Congratulations to the Winners'
+const HERO_BUTTON = 'See the winners'
+const FOOTER_TEXT = 'Thank you to everyone who voted. 💖'
 
 const BAR_COLORS = ['#ff6b9d', '#7c5cff', '#ffb020', '#19c3a0', '#3b9cff', '#ff7a45']
-const BURST_EMOJI = ['✨', '💖', '🔥', '⭐', '🎉']
-const TRAIL_SYMBOLS = ['✦', '✧', '♥', '✨', '●']
-const SPLASH_MESSAGES = ['warming up the votes', 'stacking the bars', 'sprinkling sparkle', 'almost there']
-const TOASTS = ['vote locked in ✨', 'bold pick 🔥', 'noted 💖', 'the people have spoken 🎉']
-const MARQUEE_WORDS = ['vote now', 'pick your fighter', 'live results', 'no cap', 'tap to vote', 'main character energy', 'the people have spoken']
+const FALL_EMOJI = ['✨', '💖', '🔥', '⭐', '🎉', '👑']
+const SPLASH_MESSAGES = ['counting the votes', 'checking twice', 'polishing the crown', 'almost there']
 const SHAPES = [
-  { c: '✦', x: '6%', y: '16%', s: 44, d: 90, t: 9 },
-  { c: '✿', x: '90%', y: '10%', s: 58, d: -120, t: 11 },
-  { c: '◯', x: '12%', y: '60%', s: 64, d: 70, t: 8 },
-  { c: '✚', x: '86%', y: '46%', s: 40, d: -80, t: 10 },
-  { c: '☺', x: '70%', y: '84%', s: 52, d: 110, t: 12 },
-  { c: '▲', x: '30%', y: '90%', s: 34, d: -60, t: 7 },
-  { c: '✷', x: '48%', y: '6%', s: 38, d: 80, t: 9 },
-  { c: '◆', x: '96%', y: '72%', s: 30, d: -100, t: 8 },
+  { c: '✦', x: '6%', y: '16%', s: 44, t: 9 },
+  { c: '✿', x: '90%', y: '10%', s: 58, t: 11 },
+  { c: '◯', x: '12%', y: '60%', s: 64, t: 8 },
+  { c: '✚', x: '86%', y: '46%', s: 40, t: 10 },
+  { c: '☺', x: '70%', y: '84%', s: 52, t: 12 },
+  { c: '▲', x: '30%', y: '90%', s: 34, t: 7 },
 ]
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap');
-
 html { scroll-behavior: smooth; }
-
 .vote-root {
   --ink: #15132b; --muted: #6b6a80; --paper: #f7f7fc; --line: #e3e2f0;
   font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  color: var(--ink);
-  background-color: var(--paper);
+  color: var(--ink); background-color: var(--paper);
   background-image: radial-gradient(rgba(21,19,43,.07) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 .display { font-family: 'Bricolage Grotesque', 'DM Sans', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.02em; }
-
 .stripes {
   background-image: linear-gradient(135deg, rgba(255,255,255,.28) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.28) 50%, rgba(255,255,255,.28) 75%, transparent 75%);
-  background-size: 28px 28px;
-  animation: march 1.4s linear infinite;
+  background-size: 28px 28px; animation: march 1.4s linear infinite;
 }
 .shimmer::after {
   content: ''; position: absolute; inset: 0;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
   transform: translateX(-100%); animation: sweep 2.2s ease-in-out infinite;
 }
-.grain {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='.12'/></svg>");
-  mix-blend-mode: multiply; opacity: .12;
-}
-
 @keyframes rise     { from { transform: translateY(46px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes word     { from { transform: translateY(120%) rotate(5deg) } to { transform: none } }
-@keyframes pop      { 0% { transform: scale(1) } 35% { transform: scale(1.18) } 100% { transform: scale(1) } }
-@keyframes bob      { 0%,100% { transform: translateY(0) rotate(-8deg) } 50% { transform: translateY(-7px) rotate(8deg) } }
+@keyframes pop      { 0% { transform: scale(.6) } 60% { transform: scale(1.12) } 100% { transform: scale(1) } }
+@keyframes bob      { 0%,100% { transform: translateY(0) rotate(-8deg) } 50% { transform: translateY(-9px) rotate(8deg) } }
 @keyframes live     { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .3; transform: scale(.6) } }
-@keyframes burst    { 0% { transform: translate(0,0) scale(1) rotate(0deg); opacity: 1 } 100% { transform: translate(var(--dx), var(--dy)) scale(.2) rotate(240deg); opacity: 0 } }
 @keyframes march    { to { background-position: 28px 0 } }
 @keyframes sweep    { to { transform: translateX(100%) } }
-@keyframes idle     { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
 @keyframes drift    { 0%,100% { transform: translate(0,0) rotate(0deg) } 33% { transform: translate(18px,-26px) rotate(14deg) } 66% { transform: translate(-16px,-10px) rotate(-12deg) } }
 @keyframes aurora1  { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(14vw,10vh) scale(1.25) } }
 @keyframes aurora2  { 0%,100% { transform: translate(0,0) scale(1.1) } 50% { transform: translate(-16vw,-8vh) scale(.9) } }
 @keyframes aurora3  { 0%,100% { transform: translate(0,0) scale(1) } 50% { transform: translate(8vw,-14vh) scale(1.3) } }
-@keyframes ring     { from { transform: translate(-50%,-50%) scale(.2); opacity: .8 } to { transform: translate(-50%,-50%) scale(5); opacity: 0 } }
-@keyframes plus     { 0% { transform: translate(-50%,0) scale(.6); opacity: 0 } 20% { opacity: 1 } 100% { transform: translate(-50%,-70px) scale(1.2); opacity: 0 } }
-@keyframes toastIn  { from { transform: translate(-50%,40px) scale(.9); opacity: 0 } to { transform: translate(-50%,0) scale(1); opacity: 1 } }
 @keyframes draw     { from { stroke-dashoffset: 420 } to { stroke-dashoffset: 0 } }
-@keyframes spin     { to { transform: rotate(360deg) } }
 @keyframes loadbar  { 0%,100% { transform: scaleY(.3) } 50% { transform: scaleY(1) } }
 @keyframes stripOut { 0% { transform: translateY(0); background-color: #f7f7fc } 25% { background-color: var(--c) } 100% { transform: translateY(-101%); background-color: var(--c) } }
 @keyframes contentOut { to { opacity: 0; transform: scale(.92) translateY(-20px) } }
 @keyframes splashFloat { 0%,100% { transform: translateY(0) rotate(-6deg) } 50% { transform: translateY(-22px) rotate(8deg) } }
-
-/* landing page */
-@keyframes marquee   { to { transform: translateX(-50%) } }
-@keyframes wave      { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-0.14em) } }
-@keyframes nudge     { 0%,100% { transform: translateX(0) } 50% { transform: translateX(7px) } }
-@keyframes scrollDot { 0% { transform: translateY(0); opacity: 1 } 70% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 0 } }
-@keyframes stickerWob { 0%,100% { transform: rotate(-6deg) translateY(0) } 50% { transform: rotate(5deg) translateY(-10px) } }
-@keyframes trail     { from { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg) } to { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + 46px)) scale(.3) rotate(120deg) } }
-@keyframes hueGlow   { 0%,100% { box-shadow: 6px 6px 0 #ff6b9d } 33% { box-shadow: 6px 6px 0 #7c5cff } 66% { box-shadow: 6px 6px 0 #19c3a0 } }
-
+@keyframes fall     { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 0 } 10% { opacity: 1 } 100% { transform: translateY(110vh) rotate(360deg); opacity: 1 } }
+@keyframes hueGlow  { 0%,100% { box-shadow: 6px 6px 0 #ff6b9d } 33% { box-shadow: 6px 6px 0 #7c5cff } 66% { box-shadow: 6px 6px 0 #19c3a0 } }
+@keyframes wave     { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-0.14em) } }
+@keyframes nudge    { 0%,100% { transform: translateY(0) } 50% { transform: translateY(6px) } }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -125,13 +93,13 @@ html { scroll-behavior: smooth; }
 /* ========================================================================
    HELPERS + HOOKS
    ======================================================================== */
-const sortOptions = (arr: Option[]) =>
-  [...arr].sort((a, b) => a.text.localeCompare(b.text, undefined, { numeric: true, sensitivity: 'base' }))
+const byVotes = (arr: Option[]) => [...arr].sort((a, b) => b.votes - a.votes || a.text.localeCompare(b.text))
 
-const scrollToVote = () => document.getElementById('vote')?.scrollIntoView({ behavior: 'smooth' })
+const pctOf = (v: number, total: number) => (total > 0 ? Math.round((v / total) * 100) : 0)
 
-// Smooth count-up / count-down
-function useTicker(target: number, duration = 900) {
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`
+
+function useTicker(target: number, duration = 1200) {
   const [value, setValue] = useState(0)
   const fromRef = useRef(0)
   useEffect(() => {
@@ -152,33 +120,6 @@ function useTicker(target: number, duration = 900) {
   return value
 }
 
-// Confetti burst on vote
-function useBursts() {
-  const [bursts, setBursts] = useState<number[]>([])
-  const fire = () => {
-    const id = Date.now() + Math.random()
-    setBursts((b) => [...b, id])
-    setTimeout(() => setBursts((b) => b.filter((x) => x !== id)), 1000)
-  }
-  return { bursts, fire }
-}
-
-// Flies a "+1" / "-1" whenever the vote count changes (also from other people's votes)
-function useDeltas(votes: number, enabled: boolean) {
-  const prev = useRef(votes)
-  const [items, setItems] = useState<{ id: number; d: number }[]>([])
-  useEffect(() => {
-    const d = votes - prev.current
-    prev.current = votes
-    if (!enabled || d === 0) return
-    const id = Math.random()
-    setItems((i) => [...i, { id, d }])
-    setTimeout(() => setItems((i) => i.filter((x) => x.id !== id)), 1100)
-  }, [votes, enabled])
-  return items
-}
-
-// Becomes true the first time the element scrolls into view
 function useInView<T extends HTMLElement>(threshold = 0.15) {
   const ref = useRef<T>(null)
   const [seen, setSeen] = useState(false)
@@ -200,55 +141,8 @@ function useInView<T extends HTMLElement>(threshold = 0.15) {
   return [ref, seen] as const
 }
 
-function Bursts({ ids, color, className }: { ids: number[]; color: string; className: string }) {
-  return (
-    <>
-      {ids.map((id) => (
-        <div key={id} className={`pointer-events-none absolute w-0 h-0 z-20 ${className}`}>
-          {Array.from({ length: 14 }).map((_, i) => {
-            const angle = (i / 14) * Math.PI * 2
-            const dist = 80 + (i % 3) * 45
-            const style = {
-              '--dx': `${Math.cos(angle) * dist}px`,
-              '--dy': `${Math.sin(angle) * dist - 30}px`,
-              animation: 'burst 900ms cubic-bezier(.2,.8,.3,1) forwards',
-            } as CSSProperties
-            return i % 2 ? (
-              <span key={i} className="absolute -left-3 -top-3 text-xl" style={style}>
-                {BURST_EMOJI[i % BURST_EMOJI.length]}
-              </span>
-            ) : (
-              <span
-                key={i}
-                className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full"
-                style={{ ...style, background: i % 4 ? '#fff' : color, border: '2px solid var(--ink)' }}
-              />
-            )
-          })}
-        </div>
-      ))}
-    </>
-  )
-}
-
-function Deltas({ items }: { items: { id: number; d: number }[] }) {
-  return (
-    <>
-      {items.map((x) => (
-        <span
-          key={x.id}
-          className="display pointer-events-none absolute left-1/2 top-0 z-30 text-xl font-extrabold"
-          style={{ color: x.d > 0 ? '#19c3a0' : '#ff6b9d', animation: 'plus 1100ms ease-out forwards' }}
-        >
-          {x.d > 0 ? `+${x.d}` : x.d}
-        </span>
-      ))}
-    </>
-  )
-}
-
 /* ========================================================================
-   SPLASH / LOADING SCREEN
+   SPLASH
    ======================================================================== */
 function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
   const [pct, setPct] = useState(0)
@@ -352,104 +246,54 @@ function Splash({ loading, onDone }: { loading: boolean; onDone: () => void }) {
 }
 
 /* ========================================================================
-   BACKDROP
+   BACKDROP + SMALL UI
    ======================================================================== */
 function Backdrop() {
-  const root = useRef<HTMLDivElement>(null)
-  const [rings, setRings] = useState<{ id: number; x: number; y: number; c: string }[]>([])
-
-  useEffect(() => {
-    let tx = window.innerWidth / 2
-    let ty = window.innerHeight / 2
-    let cx = tx
-    let cy = ty
-    let raf = 0
-    const onMove = (e: PointerEvent) => {
-      tx = e.clientX
-      ty = e.clientY
-    }
-    const onDown = (e: PointerEvent) => {
-      const id = Math.random()
-      const c = BAR_COLORS[Math.floor(Math.random() * BAR_COLORS.length)]
-      setRings((r) => [...r, { id, x: e.clientX, y: e.clientY, c }])
-      setTimeout(() => setRings((r) => r.filter((x) => x.id !== id)), 800)
-    }
-    const loop = () => {
-      cx += (tx - cx) * 0.1
-      cy += (ty - cy) * 0.1
-      const el = root.current
-      if (el) {
-        el.style.setProperty('--cx', `${cx}px`)
-        el.style.setProperty('--cy', `${cy}px`)
-        el.style.setProperty('--mx', (cx / window.innerWidth - 0.5).toFixed(3))
-        el.style.setProperty('--my', (cy / window.innerHeight - 0.5).toFixed(3))
-      }
-      raf = requestAnimationFrame(loop)
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerdown', onDown)
-    raf = requestAnimationFrame(loop)
-    return () => {
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerdown', onDown)
-      cancelAnimationFrame(raf)
-    }
-  }, [])
-
-  const blob = (color: string, pos: string, anim: string): CSSProperties => ({
+  const blob = (color: string, pos: Record<string, string>, anim: string): CSSProperties => ({
     background: color,
     animation: `${anim} 22s ease-in-out infinite`,
-    ...(Object.fromEntries(pos.split(';').map((p) => p.split(':'))) as CSSProperties),
+    ...pos,
   })
-
   return (
-    <div ref={root} className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-      <div className="absolute w-[55vw] h-[55vw] rounded-full blur-[110px] opacity-40" style={blob('#ff6b9d', 'left:-10vw;top:-10vw', 'aurora1')} />
-      <div className="absolute w-[50vw] h-[50vw] rounded-full blur-[110px] opacity-35" style={blob('#7c5cff', 'right:-12vw;top:20vh', 'aurora2')} />
-      <div className="absolute w-[45vw] h-[45vw] rounded-full blur-[110px] opacity-35" style={blob('#19c3a0', 'left:20vw;bottom:-15vw', 'aurora3')} />
-
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+      <div className="absolute w-[55vw] h-[55vw] rounded-full blur-[110px] opacity-40" style={blob('#ff6b9d', { left: '-10vw', top: '-10vw' }, 'aurora1')} />
+      <div className="absolute w-[50vw] h-[50vw] rounded-full blur-[110px] opacity-35" style={blob('#7c5cff', { right: '-12vw', top: '20vh' }, 'aurora2')} />
+      <div className="absolute w-[45vw] h-[45vw] rounded-full blur-[110px] opacity-35" style={blob('#19c3a0', { left: '20vw', bottom: '-15vw' }, 'aurora3')} />
       {SHAPES.map((s, i) => (
         <span
           key={i}
           className="absolute leading-none opacity-40"
-          style={{
-            left: s.x,
-            top: s.y,
-            fontSize: s.s,
-            color: BAR_COLORS[i % BAR_COLORS.length],
-            transform: `translate3d(calc(var(--mx, 0) * ${s.d}px), calc(var(--my, 0) * ${s.d}px), 0)`,
-          }}
+          style={{ left: s.x, top: s.y, fontSize: s.s, color: BAR_COLORS[i % BAR_COLORS.length], animation: `drift ${s.t}s ease-in-out ${i * -1.1}s infinite` }}
         >
-          <span className="block" style={{ animation: `drift ${s.t}s ease-in-out ${i * -1.1}s infinite` }}>
-            {s.c}
-          </span>
+          {s.c}
         </span>
       ))}
-
-      <div
-        className="hidden [@media(pointer:fine)]:block absolute left-0 top-0 w-[480px] h-[480px] rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(124,92,255,.22), rgba(255,107,157,.1) 45%, transparent 70%)',
-          transform: 'translate(calc(var(--cx, 50vw) - 50%), calc(var(--cy, 50vh) - 50%))',
-        }}
-      />
-
-      {rings.map((r) => (
-        <span
-          key={r.id}
-          className="absolute w-16 h-16 rounded-full"
-          style={{ left: r.x, top: r.y, border: `3px solid ${r.c}`, animation: 'ring 800ms ease-out forwards' }}
-        />
-      ))}
-
-      <div className="grain absolute inset-0" />
     </div>
   )
 }
 
-/* ========================================================================
-   SMALL UI
-   ======================================================================== */
+// One-time celebration shower when the page opens
+function Shower({ on }: { on: boolean }) {
+  if (!on) return null
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[70] overflow-hidden" aria-hidden>
+      {Array.from({ length: 26 }).map((_, i) => (
+        <span
+          key={i}
+          className="absolute top-0 text-2xl sm:text-3xl"
+          style={{
+            left: `${(i * 37) % 100}%`,
+            opacity: 0,
+            animation: `fall ${3.2 + (i % 5) * 0.5}s ${(i % 9) * 0.22}s ease-in forwards`,
+          }}
+        >
+          {FALL_EMOJI[i % FALL_EMOJI.length]}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function ScrollBar() {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -480,718 +324,273 @@ function BrandChip() {
       aria-label="Back to top"
       className="fixed top-4 left-4 z-40 inline-flex items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-white/80 backdrop-blur px-3.5 py-1.5 shadow-[3px_3px_0_var(--ink)] transition-transform hover:-translate-y-0.5 hover:-rotate-2 active:scale-95"
     >
-      <span className="relative w-3.5 h-3.5 rounded-full bg-[#7c5cff]">
-        <span className="absolute inset-0 rounded-full bg-[#7c5cff]" style={{ animation: 'ring 1.8s ease-out infinite' }} />
-      </span>
+      <span className="w-3.5 h-3.5 rounded-full bg-[#7c5cff]" />
       <span className="display font-extrabold text-sm">{BRAND}</span>
     </button>
   )
 }
 
-function Toast({ toast }: { toast: { id: number; msg: string } | null }) {
-  if (!toast) return null
-  return (
-    <div
-      key={toast.id}
-      role="status"
-      className="display fixed bottom-6 left-1/2 z-50 rounded-full border-2 border-[var(--ink)] bg-white px-5 py-2.5 text-sm sm:text-base font-extrabold shadow-[4px_4px_0_var(--ink)]"
-      style={{ animation: 'toastIn 350ms cubic-bezier(.34,1.56,.64,1) both' }}
-    >
-      {toast.msg}
-    </div>
-  )
-}
-
-function PollDots({ polls, active }: { polls: Poll[]; active: number }) {
-  if (polls.length < 2) return null
-  return (
-    <nav aria-label="Polls" className="hidden lg:flex fixed right-6 top-1/2 -translate-y-1/2 z-40 flex-col gap-3">
-      {polls.map((p, i) => (
-        <button
-          key={p.id}
-          aria-label={`Go to poll ${i + 1}`}
-          onClick={() => document.getElementById(`poll-${p.id}`)?.scrollIntoView({ behavior: 'smooth' })}
-          className="w-4 h-4 rounded-full border-2 border-[var(--ink)] transition-all duration-300 hover:scale-125"
-          style={{
-            background: i === active ? BAR_COLORS[i % BAR_COLORS.length] : '#fff',
-            transform: i === active ? 'scale(1.4)' : undefined,
-          }}
-        />
-      ))}
-    </nav>
-  )
-}
-
-// Sparkles that follow the cursor (mouse / trackpad only)
-function SparkleTrail() {
-  const [items, setItems] = useState<{ id: number; x: number; y: number; s: string; c: string; dx: number }[]>([])
-  const last = useRef(0)
-
-  useEffect(() => {
-    if (!window.matchMedia('(pointer: fine)').matches) return
-    const onMove = (e: PointerEvent) => {
-      const now = performance.now()
-      if (now - last.current < 55) return
-      last.current = now
-      const id = now + Math.random()
-      const item = {
-        id,
-        x: e.clientX,
-        y: e.clientY,
-        s: TRAIL_SYMBOLS[Math.floor(Math.random() * TRAIL_SYMBOLS.length)],
-        c: BAR_COLORS[Math.floor(Math.random() * BAR_COLORS.length)],
-        dx: (Math.random() - 0.5) * 50,
-      }
-      setItems((i) => [...i.slice(-16), item])
-      setTimeout(() => setItems((i) => i.filter((x) => x.id !== id)), 800)
-    }
-    window.addEventListener('pointermove', onMove)
-    return () => window.removeEventListener('pointermove', onMove)
-  }, [])
-
-  return (
-    <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden" aria-hidden>
-      {items.map((p) => (
-        <span
-          key={p.id}
-          className="absolute text-lg leading-none"
-          style={
-            {
-              left: p.x,
-              top: p.y,
-              color: p.c,
-              '--dx': `${p.dx}px`,
-              animation: 'trail 800ms ease-out forwards',
-            } as CSSProperties
-          }
-        >
-          {p.s}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-function BackToTop() {
-  const [show, setShow] = useState(false)
-  useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 800)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  return (
-    <button
-      type="button"
-      aria-label="Back to top"
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="display fixed bottom-6 right-5 z-40 w-12 h-12 rounded-full border-2 border-[var(--ink)] bg-white text-xl font-extrabold shadow-[3px_3px_0_var(--ink)] transition-all duration-300 hover:-translate-y-1 active:scale-90"
-      style={{ opacity: show ? 1 : 0, transform: show ? undefined : 'translateY(24px) scale(.6)', pointerEvents: show ? 'auto' : 'none' }}
-    >
-      ↑
-    </button>
-  )
-}
-
 /* ========================================================================
-   LANDING PAGE (shows after the loading screen)
+   HERO
    ======================================================================== */
-function Marquee() {
-  const row = (
-    <div className="flex shrink-0 items-center">
-      {MARQUEE_WORDS.map((w) => (
-        <span key={w} className="display flex items-center text-lg sm:text-2xl font-extrabold text-white whitespace-nowrap">
-          <span className="px-6 sm:px-10">{w}</span>
-          <span style={{ color: '#ffb020' }}>✦</span>
-        </span>
-      ))}
-    </div>
-  )
-  return (
-    <div className="overflow-hidden bg-[var(--ink)] py-3 sm:py-4">
-      <div className="flex w-max" style={{ animation: 'marquee 40s linear infinite' }}>
-        {row}
-        {row}
-      </div>
-    </div>
-  )
-}
-
-// Fake little chart that keeps moving, so the landing page feels alive
-function DemoChart({ live }: { live: boolean }) {
-  const [vals, setVals] = useState([46, 30, 20, 12])
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!live) return
-    const t = setInterval(() => {
-      setVals((v) => v.map((x) => Math.max(6, Math.min(70, x + (Math.random() * 34 - 17)))))
-    }, 1700)
-    return () => clearInterval(t)
-  }, [live])
-
-  const total = vals.reduce((a, b) => a + b, 0)
-  const max = Math.max(...vals)
-
-  const handleMove = (e: RPointerEvent<HTMLDivElement>) => {
-    const el = ref.current
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    el.style.setProperty('--rx', `${(-((e.clientY - r.top) / r.height - 0.5) * 10).toFixed(1)}deg`)
-    el.style.setProperty('--ry', `${(((e.clientX - r.left) / r.width - 0.5) * 14).toFixed(1)}deg`)
-  }
-  const handleLeave = () => {
-    ref.current?.style.setProperty('--rx', '0deg')
-    ref.current?.style.setProperty('--ry', '0deg')
-  }
-
-  return (
-    <div className="relative w-full max-w-md mx-auto lg:mx-0 lg:ml-auto" onPointerMove={handleMove} onPointerLeave={handleLeave}>
-      {/* floating stickers */}
-      <span
-        className="display absolute -top-6 -left-3 sm:-left-8 z-20 rounded-full border-2 border-[var(--ink)] bg-[#ffb020] px-4 py-1.5 text-sm sm:text-base font-extrabold shadow-[3px_3px_0_var(--ink)]"
-        style={{ animation: 'stickerWob 5s ease-in-out infinite' }}
-      >
-        no cap 💅
-      </span>
-      <span
-        className="display absolute -bottom-5 -right-2 sm:-right-6 z-20 rounded-full border-2 border-[var(--ink)] bg-[#19c3a0] px-4 py-1.5 text-sm sm:text-base font-extrabold shadow-[3px_3px_0_var(--ink)]"
-        style={{ animation: 'stickerWob 6s ease-in-out -2s infinite' }}
-      >
-        live ✨
-      </span>
-      <span
-        className="absolute top-1/2 -right-4 sm:-right-10 z-20 text-4xl sm:text-5xl"
-        style={{ animation: 'bob 3s ease-in-out infinite' }}
-      >
-        🔥
-      </span>
-
-      <div
-        ref={ref}
-        className="relative rounded-[2rem] border-2 border-[var(--ink)] bg-white p-5 sm:p-7"
-        style={{
-          transform: 'perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))',
-          transition: 'transform 250ms ease-out',
-          boxShadow: '8px 8px 0 var(--ink)',
-        }}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <span className="display text-lg font-extrabold">live preview</span>
-          <span className="flex items-center gap-1.5 text-xs font-bold">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ff6b9d]" style={{ animation: 'live 1.4s ease-in-out infinite' }} />
-            moving now
-          </span>
-        </div>
-
-        <div className="flex items-end justify-between gap-3 sm:gap-5 h-56 sm:h-72 pb-1 border-b-[3px] border-[var(--ink)]">
-          {vals.map((v, i) => {
-            const isLeader = v === max
-            return (
-              <div key={i} className="flex-1 h-full flex flex-col justify-end items-center">
-                <div className="relative text-center mb-1.5">
-                  {isLeader && (
-                    <span className="absolute left-1/2 -translate-x-1/2 -top-6 text-xl leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
-                      👑
-                    </span>
-                  )}
-                  <span className="display text-lg sm:text-2xl font-extrabold tabular-nums">
-                    {Math.round((v / total) * 100)}
-                    <span className="text-xs text-[var(--muted)]">%</span>
-                  </span>
-                </div>
-                <div
-                  className="relative w-full overflow-hidden rounded-t-xl border-2 border-b-0 border-[var(--ink)]"
-                  style={{
-                    background: BAR_COLORS[i],
-                    height: live ? `${(v / max) * 72}%` : '4%',
-                    transition: 'height 1400ms cubic-bezier(.34,1.56,.64,1)',
-                  }}
-                >
-                  <span className="stripes absolute inset-0" />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="flex justify-between gap-3 sm:gap-5 mt-4">
-          {['A', 'B', 'C', 'D'].map((l, i) => (
-            <span
-              key={l}
-              className="display flex-1 text-center rounded-full border-2 border-[var(--ink)] py-1 text-sm sm:text-lg font-extrabold shadow-[2px_2px_0_var(--ink)]"
-              style={{ background: BAR_COLORS[i], transform: `rotate(${i % 2 ? 2 : -2}deg)` }}
-            >
-              {l}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Landing({ ready, pollCount, totalVotes }: { ready: boolean; pollCount: number; totalVotes: number }) {
-  const pollsTick = useTicker(ready ? pollCount : 0)
-  const votesTick = useTicker(ready ? totalVotes : 0)
-  const { bursts, fire } = useBursts()
-  const btnRef = useRef<HTMLButtonElement>(null)
-
-  // Button drifts toward the cursor (magnetic)
-  const handleMove = (e: RPointerEvent<HTMLDivElement>) => {
-    const el = btnRef.current
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    const dx = e.clientX - (r.left + r.width / 2)
-    const dy = e.clientY - (r.top + r.height / 2)
-    el.style.transform = `translate(${(dx * 0.18).toFixed(1)}px, ${(dy * 0.28).toFixed(1)}px)`
-  }
-  const handleLeave = () => {
-    if (btnRef.current) btnRef.current.style.transform = 'translate(0,0)'
-  }
-
-  const handleStart = () => {
-    fire()
-    navigator.vibrate?.(14)
-    setTimeout(scrollToVote, 450)
-  }
-
-  // Each hero word: text, optional sticker color, optional wavy letters
-  const HERO: { w: string; sticker?: string; wavy?: boolean }[] = [
-    { w: 'One Vision,' },
-    { w: 'One Team,' },
-    { w: 'One', sticker: '#ffb020' },
-    { w: 'Leader', wavy: true },
-  ]
-
+function Hero({ ready }: { ready: boolean }) {
   const reveal = (delay: number): CSSProperties => ({
     animation: ready ? `rise 800ms ${delay}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
     opacity: ready ? undefined : 0,
   })
 
+  const line = (text: string, delay: number) => (
+    <span className="block overflow-hidden pb-[0.12em]">
+      <span
+        className="inline-block"
+        style={{
+          transform: ready ? undefined : 'translateY(120%)',
+          animation: ready ? `word 900ms ${delay}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
+        }}
+      >
+        {text}
+      </span>
+    </span>
+  )
+
   return (
-    <section id="home" className="relative min-h-screen flex flex-col">
-      <div className="flex-1 flex items-center">
-        <div className="w-full max-w-6xl mx-auto px-5 sm:px-10 pt-28 pb-16 sm:pt-32 sm:pb-24 grid lg:grid-cols-[1.15fr_1fr] gap-16 lg:gap-12 items-center">
-          {/* LEFT: copy */}
-          <div>
-            <div
-              className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-white pl-3 pr-4 py-1.5 shadow-[3px_3px_0_var(--ink)]"
-              style={reveal(0)}
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-[#19c3a0]" style={{ animation: 'live 1.4s ease-in-out infinite' }} />
-              <span className="text-sm font-bold">{LANDING_EYEBROW}</span>
-            </div>
+    <section className="relative min-h-screen flex items-center">
+      <div className="w-full max-w-6xl mx-auto px-5 sm:px-10 pt-28 pb-20 flex flex-col items-start">
+        <div
+          className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-white pl-3 pr-4 py-1.5 shadow-[3px_3px_0_var(--ink)]"
+          style={reveal(0)}
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-[#19c3a0]" style={{ animation: 'live 1.4s ease-in-out infinite' }} />
+          <span className="text-sm font-bold">{HERO_EYEBROW}</span>
+        </div>
 
-            <h1
-              className="display font-extrabold leading-[0.98] mt-8 sm:mt-10"
-              style={{ fontSize: 'clamp(3.2rem, 9.5vw, 7.5rem)' }}
-            >
-              {HERO.map((h, i) =>
-                h.sticker ? (
-                  <span
-                    key={i}
-                    className="inline-block align-bottom rounded-[0.3em] border-[3px] border-[var(--ink)] px-[0.18em] mr-[0.2em] -rotate-2 shadow-[5px_5px_0_var(--ink)]"
-                    style={{ background: h.sticker, ...reveal(300 + i * 110) }}
-                  >
-                    {h.w}
-                  </span>
-                ) : (
-                  <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.12em] mr-[0.24em]">
-                    <span
-                      className="inline-block"
-                      style={{
-                        transform: ready ? undefined : 'translateY(120%)',
-                        animation: ready ? `word 900ms ${300 + i * 110}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
-                      }}
-                    >
-                      {h.wavy
-                        ? h.w.split('').map((ch, k) => (
-                            <span
-                              key={k}
-                              className="inline-block"
-                              style={{ color: BAR_COLORS[k % BAR_COLORS.length], animation: `wave 1.6s ease-in-out ${k * 0.12}s infinite` }}
-                            >
-                              {ch}
-                            </span>
-                          ))
-                        : h.w}
-                    </span>
-                  </span>
-                )
-              )}
-            </h1>
+        <h1 className="display font-extrabold leading-[0.98] mt-8 sm:mt-10" style={{ fontSize: 'clamp(3.4rem, 11vw, 9rem)' }}>
+          {line('The votes', 250)}
+          {line('are in.', 380)}
+          <span
+            className="inline-block mt-3 rounded-[0.3em] border-[3px] border-[var(--ink)] px-[0.2em] -rotate-2 shadow-[6px_6px_0_var(--ink)] bg-[#ffb020]"
+            style={reveal(700)}
+          >
+            {'Meet the leaders'.split('').map((ch, k) => (
+              <span key={k} className="inline-block" style={{ whiteSpace: 'pre', animation: ready ? `wave 1.8s ease-in-out ${k * 0.08}s infinite` : undefined, fontSize: '0.4em' }}>
+                {ch}
+              </span>
+            ))}
+          </span>
+        </h1>
 
-            <p className="mt-8 sm:mt-10 max-w-md text-lg sm:text-xl font-medium text-[var(--muted)] leading-relaxed" style={reveal(900)}>
-              {LANDING_SUBTEXT}
-            </p>
+        <p className="mt-8 max-w-md text-lg sm:text-xl font-medium text-[var(--muted)] leading-relaxed" style={reveal(1000)}>
+          {HERO_SUBTEXT}
+        </p>
 
-            {/* BUTTON */}
-            <div className="mt-10 sm:mt-12 flex flex-wrap items-center gap-6" style={reveal(1050)}>
-              <div className="relative p-6 -m-6" onPointerMove={handleMove} onPointerLeave={handleLeave}>
-                <button
-                  ref={btnRef}
-                  type="button"
-                  onClick={handleStart}
-                  className="shimmer group relative overflow-hidden display inline-flex items-center gap-3 rounded-full border-2 border-[var(--ink)] bg-[var(--ink)] px-8 py-4 sm:px-10 sm:py-5 text-xl sm:text-2xl font-extrabold text-white outline-none transition-[transform,box-shadow] duration-200 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#7c5cff]"
-                  style={{ animation: 'hueGlow 4s linear infinite' }}
-                >
-                  <span className="relative z-10">{LANDING_BUTTON}</span>
-                  <span className="relative z-10 text-2xl sm:text-3xl" style={{ animation: 'nudge 1.2s ease-in-out infinite' }}>
-                    →
-                  </span>
-                </button>
-                <Bursts ids={bursts} color="#ff6b9d" className="left-1/2 top-1/2" />
-              </div>
-
-              {/* LIVE STATS */}
-              <div className="flex items-center gap-3">
-                <span className="rounded-full border-2 border-[var(--ink)] bg-white px-4 py-1.5 text-sm font-bold tabular-nums shadow-[3px_3px_0_var(--ink)]">
-                  {pollsTick} {pollCount === 1 ? 'poll' : 'polls'}
-                </span>
-                <span className="rounded-full border-2 border-[var(--ink)] bg-white px-4 py-1.5 text-sm font-bold tabular-nums shadow-[3px_3px_0_var(--ink)]">
-                  {votesTick} {totalVotes === 1 ? 'vote' : 'votes'} cast
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT: live preview */}
-          <div style={reveal(700)}>
-            <DemoChart live={ready} />
-          </div>
+        <div className="mt-10 flex flex-wrap items-center gap-5" style={reveal(1150)}>
+          <button
+            type="button"
+            onClick={() => document.getElementById('winners')?.scrollIntoView({ behavior: 'smooth' })}
+            className="shimmer relative overflow-hidden display inline-flex items-center gap-3 rounded-full border-2 border-[var(--ink)] bg-[var(--ink)] px-8 py-4 sm:px-10 sm:py-5 text-xl sm:text-2xl font-extrabold text-white outline-none transition-transform duration-200 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#7c5cff]"
+            style={{ animation: 'hueGlow 4s linear infinite' }}
+          >
+            <span className="relative z-10">{HERO_BUTTON}</span>
+            <span className="relative z-10 text-2xl" style={{ animation: 'nudge 1.2s ease-in-out infinite' }}>
+              ↓
+            </span>
+          </button>
         </div>
       </div>
-
-      {/* SCROLL CUE */}
-      <button
-        type="button"
-        onClick={scrollToVote}
-        aria-label="Scroll to voting"
-        className="mx-auto mb-8 flex flex-col items-center gap-2 text-xs font-bold text-[var(--muted)] transition-transform hover:translate-y-1"
-        style={reveal(1400)}
-      >
-        scroll
-        <span className="relative block w-6 h-10 rounded-full border-2 border-[var(--ink)] bg-white/70">
-          <span
-            className="absolute left-1/2 top-2 w-1.5 h-1.5 -ml-[3px] rounded-full bg-[var(--ink)]"
-            style={{ animation: 'scrollDot 1.6s ease-in-out infinite' }}
-          />
-        </span>
-      </button>
-
-      <Marquee />
     </section>
   )
 }
 
 /* ========================================================================
-   DESKTOP: ONE OPTION COLUMN
+   WINNERS WALL (one card per poll, click to reveal)
    ======================================================================== */
-interface ItemProps {
-  option: Option
-  index: number
-  color: string
-  percentage: number
-  ratio: number
-  isLeader: boolean
-  isSelected: boolean
-  hasVotedAny: boolean
-  ready: boolean
-  onVote: () => void
+interface Result {
+  poll: Poll
+  options: Option[] // sorted by votes desc
+  total: number
+  winners: Option[]
 }
 
-function OptionColumn({ option, index, color, percentage, ratio, isLeader, isSelected, hasVotedAny, ready, onVote }: ItemProps) {
-  const pctTick = useTicker(ready ? percentage : 0)
-  const votesTick = useTicker(ready ? option.votes : 0)
-  const deltas = useDeltas(option.votes, ready)
-  const { bursts, fire } = useBursts()
-  const tiltRef = useRef<HTMLDivElement>(null)
-
-  const handleClick = () => {
-    if (hasVotedAny) return // locked once user has already voted for this poll
-    if (!isSelected) fire()
-    onVote()
-  }
-
-  const handleMove = (e: RPointerEvent<HTMLDivElement>) => {
-    const el = tiltRef.current
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    el.style.setProperty('--rx', `${(-((e.clientY - r.top) / r.height - 0.5) * 10).toFixed(1)}deg`)
-    el.style.setProperty('--ry', `${(((e.clientX - r.left) / r.width - 0.5) * 12).toFixed(1)}deg`)
-  }
-  const handleLeave = () => {
-    tiltRef.current?.style.setProperty('--rx', '0deg')
-    tiltRef.current?.style.setProperty('--ry', '0deg')
-  }
-
-  const frac = ready ? 0.03 + ratio * 0.22 : 0
-  const shortLabel = option.text.length <= 2
+function WinnerCard({ r, index, ready, revealed, onReveal }: { r: Result; index: number; ready: boolean; revealed: boolean; onReveal: () => void }) {
+  const [ref, seen] = useInView<HTMLAnchorElement>(0.2)
+  const live = ready && seen
+  const color = BAR_COLORS[index % BAR_COLORS.length]
+  const w = r.winners[0]
+  const tie = r.winners.length > 1
+  const pct = useTicker(live && revealed && w ? pctOf(w.votes, r.total) : 0)
 
   return (
-    <div
-      className="flex flex-col items-center flex-1 min-w-0 max-w-[250px] h-full"
-      style={{ animation: ready ? `rise 800ms ${index * 120}ms cubic-bezier(.2,.9,.3,1) both` : undefined, opacity: ready ? undefined : 0 }}
+    <a
+      ref={ref}
+      href={`#poll-${r.poll.id}`}
+      onClick={(e) => {
+        // First click reveals the winner; after that the link jumps to the full breakdown
+        if (!revealed) {
+          e.preventDefault()
+          onReveal()
+        }
+      }}
+      className="group relative flex flex-col rounded-[1.75rem] border-2 border-[var(--ink)] bg-white p-4 outline-none transition-transform duration-200 hover:-translate-y-1 hover:-rotate-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#15132b]"
+      style={{
+        boxShadow: `6px 6px 0 ${color}, 6px 6px 0 2px var(--ink)`,
+        animation: live ? `rise 700ms ${index * 100}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
+        opacity: live ? undefined : 0,
+      }}
     >
-      <div
-        role="button"
-        tabIndex={0}
-        aria-pressed={isSelected}
-        aria-label={`Vote for ${option.text}`}
-        onClick={handleClick}
-        onPointerMove={handleMove}
-        onPointerLeave={handleLeave}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            handleClick()
-          }
-        }}
-        className={`group relative flex-1 w-full flex flex-col justify-end items-center select-none outline-none rounded-[1.75rem] ${
-          hasVotedAny ? 'cursor-default' : 'cursor-pointer active:scale-[0.96] transition-transform duration-150'
-        }`}
-      >
-        <div className="relative text-center mb-5">
-          <Deltas items={deltas} />
-          {isLeader && (
-            <div className="absolute left-1/2 -translate-x-1/2 -top-10 text-3xl leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
-              👑
-            </div>
-          )}
-          <div key={option.votes} style={{ animation: 'pop 450ms ease-out' }}>
-            <span
-              className="display block tabular-nums leading-none font-extrabold"
-              style={{
-                fontSize: isLeader ? 'clamp(3rem, 5vw, 4.5rem)' : 'clamp(2.2rem, 3.6vw, 3.2rem)',
-                transition: 'font-size 500ms cubic-bezier(.34,1.56,.64,1)',
-              }}
-            >
-              {pctTick}
-              <span className="text-[0.45em] ml-0.5 text-[var(--muted)]">%</span>
+      <p className="display text-base sm:text-lg font-extrabold leading-snug min-h-[3.2rem]">{r.poll.question}</p>
+
+      <div className="relative mt-3 aspect-square w-full overflow-hidden rounded-2xl border-2 border-[var(--ink)]">
+        {!revealed ? (
+          <div
+            className="stripes display w-full h-full flex flex-col items-center justify-center gap-2 text-center p-3"
+            style={{ background: color }}
+          >
+            <span className="text-6xl sm:text-7xl leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
+              🎁
+            </span>
+            <span className="display font-extrabold text-lg sm:text-xl bg-white border-2 border-[var(--ink)] rounded-full px-4 py-1 shadow-[3px_3px_0_var(--ink)]">
+              Click to reveal
             </span>
           </div>
-          <span className="block mt-2 text-sm font-medium tabular-nums text-[var(--muted)]">
-            {votesTick} {option.votes === 1 ? 'vote' : 'votes'}
-          </span>
-        </div>
-
-        <div
-          className="w-full"
-          style={{
-            transform: isLeader ? 'scale(1.05)' : 'scale(1)',
-            transformOrigin: 'bottom center',
-            transition: 'transform 600ms cubic-bezier(.34,1.56,.64,1)',
-          }}
-        >
-          <div style={{ animation: `idle ${5 + (index % 3)}s ease-in-out ${index * -0.9}s infinite` }}>
-            <div
-              ref={tiltRef}
-              className="relative w-full overflow-hidden rounded-[1.5rem] border-2 border-[var(--ink)] bg-white"
-              style={{
-                transform: 'perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))',
-                transition: 'transform 250ms ease-out, box-shadow 300ms',
-                boxShadow: isSelected ? `7px 7px 0 ${color}, 7px 7px 0 2px var(--ink)` : '4px 4px 0 var(--ink)',
-              }}
-            >
-              <div className="relative aspect-square w-full overflow-hidden border-b-2 border-[var(--ink)]">
-                {option.image_url ? (
-                  <img
-                    src={option.image_url}
-                    alt={`Option ${option.text}`}
-                    draggable={false}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                  />
-                ) : (
-                  <div
-                    className="display w-full h-full flex items-center justify-center font-extrabold"
-                    style={{ background: color, fontSize: 'clamp(3rem, 7vw, 6rem)' }}
-                  >
-                    {option.text}
-                  </div>
-                )}
-                <span className="pointer-events-none absolute inset-0 -translate-x-full skew-x-12 bg-gradient-to-r from-transparent via-white/60 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                {isSelected && (
-                  <span
-                    className="absolute top-3 left-3 bg-white text-xs font-bold px-3 py-1 rounded-full border-2 border-[var(--ink)]"
-                    style={{ animation: 'pop 500ms ease-out' }}
-                  >
-                    locked pick ✓
-                  </span>
-                )}
+        ) : (
+          <div className="w-full h-full" style={{ animation: 'pop 600ms both' }}>
+            {w?.image_url ? (
+              <img src={w.image_url} alt={w.text} draggable={false} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+            ) : (
+              <div className="display w-full h-full flex items-center justify-center font-extrabold p-3 text-center" style={{ background: color, fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
+                {w ? w.text : '—'}
               </div>
-
-              <div
-                className="relative w-full overflow-hidden"
-                style={{ background: color, height: `calc(var(--H) * ${frac})`, transition: 'height 1200ms cubic-bezier(.34,1.56,.64,1)' }}
-              >
-                <span className="stripes absolute inset-0" />
-              </div>
-            </div>
+            )}
+            <span className="absolute top-3 left-3 text-3xl leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
+              👑
+            </span>
           </div>
-        </div>
-
-        <Bursts ids={bursts} color={color} className="left-1/2 bottom-[40%]" />
+        )}
       </div>
 
-      <div className="w-full">
-        <div className="h-[3px] w-full rounded-full bg-[var(--ink)]" />
-        <div className="mt-6 flex justify-center">
-          <span
-            className="display inline-block text-center leading-tight font-extrabold rounded-full border-2 border-[var(--ink)] px-5 py-2 max-w-full break-words"
-            style={{
-              background: color,
-              fontSize: shortLabel ? 'clamp(1.4rem, 2.6vw, 2.2rem)' : 'clamp(0.9rem, 1.3vw, 1.15rem)',
-              boxShadow: '3px 3px 0 var(--ink)',
-              transform: `rotate(${index % 2 ? 2 : -2}deg) scale(${isLeader ? 1.1 : 1})`,
-              transition: 'transform 400ms cubic-bezier(.34,1.56,.64,1)',
-            }}
-          >
-            {option.text}
-          </span>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="display inline-block min-w-0 break-words rounded-full border-2 border-[var(--ink)] px-3.5 py-1 text-sm sm:text-base font-extrabold leading-tight" style={{ background: color }}>
+          {!revealed ? '???' : tie ? `${r.winners.length}-way tie` : w ? w.text : 'No votes'}
+        </span>
+        <span className="display text-3xl font-extrabold tabular-nums leading-none">
+          {revealed ? pct : '??'}
+          <span className="text-base text-[var(--muted)]">%</span>
+        </span>
+      </div>
+    </a>
+  )
+}
+
+function WinnersWall({ results, ready, revealedIds, onReveal }: { results: Result[]; ready: boolean; revealedIds: Set<string>; onReveal: (id: string) => void }) {
+  return (
+    <section id="winners" className="relative">
+      <div className="max-w-6xl mx-auto px-5 sm:px-10 py-20 sm:py-28">
+        <h2 className="display font-extrabold leading-[1.05] mb-12 sm:mb-16" style={{ fontSize: 'clamp(2.2rem, 6vw, 4.5rem)' }}>
+          The winners 🏆
+        </h2>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {results.map((r, i) => (
+            <WinnerCard
+              key={r.poll.id}
+              r={r}
+              index={i}
+              ready={ready}
+              revealed={revealedIds.has(r.poll.id)}
+              onReveal={() => onReveal(r.poll.id)}
+            />
+          ))}
         </div>
       </div>
-    </div>
+    </section>
   )
 }
 
 /* ========================================================================
-   PHONE: ONE OPTION ROW
+   FULL BREAKDOWN FOR ONE POLL (locked until its winner is revealed)
    ======================================================================== */
-function OptionRow({ option, index, color, percentage, isLeader, isSelected, hasVotedAny, ready, onVote }: ItemProps) {
-  const pctTick = useTicker(ready ? percentage : 0)
-  const deltas = useDeltas(option.votes, ready)
-  const { bursts, fire } = useBursts()
-
-  const handleClick = () => {
-    if (hasVotedAny) return
-    if (!isSelected) fire()
-    onVote()
-  }
+function ResultRow({ option, rank, total, color, isWinner, live }: { option: Option; rank: number; total: number; color: string; isWinner: boolean; live: boolean }) {
+  const pct = pctOf(option.votes, total)
+  const pctTick = useTicker(live ? pct : 0)
+  const votesTick = useTicker(live ? option.votes : 0)
 
   return (
-    <button
-      type="button"
-      disabled={hasVotedAny}
-      aria-pressed={isSelected}
-      aria-label={`Vote for ${option.text}`}
-      onClick={handleClick}
-      className={`relative w-full text-left rounded-2xl border-2 border-[var(--ink)] bg-white p-3 outline-none ${
-        hasVotedAny ? 'cursor-default' : 'active:scale-[0.97] transition-[transform,box-shadow] duration-150'
-      }`}
+    <div
+      className="relative rounded-2xl border-2 border-[var(--ink)] bg-white p-3 sm:p-4"
       style={{
-        boxShadow: isSelected ? `5px 5px 0 ${color}, 5px 5px 0 2px var(--ink)` : isLeader ? `4px 4px 0 ${color}` : '3px 3px 0 var(--ink)',
-        animation: ready ? `rise 650ms ${index * 90}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
-        opacity: ready ? undefined : 0,
+        boxShadow: isWinner ? `5px 5px 0 ${color}, 5px 5px 0 2px var(--ink)` : '3px 3px 0 var(--ink)',
+        animation: live ? `rise 650ms ${rank * 90}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
+        opacity: live ? undefined : 0,
       }}
     >
-      <div className="flex items-center gap-3">
-        <div className="relative shrink-0 w-[72px] h-[72px] rounded-xl overflow-hidden border-2 border-[var(--ink)]">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="relative shrink-0 w-[64px] h-[64px] sm:w-[80px] sm:h-[80px] rounded-xl overflow-hidden border-2 border-[var(--ink)]">
           {option.image_url ? (
-            <img src={option.image_url} alt={`Option ${option.text}`} draggable={false} className="w-full h-full object-cover" />
+            <img src={option.image_url} alt={option.text} draggable={false} className="w-full h-full object-cover" />
           ) : (
-            <div className="display w-full h-full flex items-center justify-center text-3xl font-extrabold" style={{ background: color }}>
+            <div className="display w-full h-full flex items-center justify-center text-2xl sm:text-3xl font-extrabold" style={{ background: color }}>
               {option.text}
             </div>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="display inline-block px-2.5 py-0.5 rounded-full border-2 border-[var(--ink)] text-sm font-extrabold leading-tight break-words max-w-full"
-              style={{ background: color }}
-            >
+          <div className="flex items-center gap-2">
+            <span className="display inline-block break-words max-w-full px-3 py-0.5 rounded-full border-2 border-[var(--ink)] text-sm sm:text-base font-extrabold leading-tight" style={{ background: color }}>
               {option.text}
             </span>
-            {isLeader && (
-              <span className="text-lg leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
+            {isWinner && (
+              <span className="text-xl leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
                 👑
               </span>
             )}
           </div>
-          <p className="mt-1.5 text-xs font-medium text-[var(--muted)] tabular-nums">
-            {option.votes} {option.votes === 1 ? 'vote' : 'votes'}
-            {isSelected && <span className="text-[var(--ink)] font-bold"> · locked pick ✓</span>}
-          </p>
+          <p className="mt-1.5 text-xs sm:text-sm font-medium text-[var(--muted)] tabular-nums">{plural(votesTick, 'vote')}</p>
         </div>
 
-        <span className="relative">
-          <Deltas items={deltas} />
-          <span key={option.votes} className="display block text-3xl font-extrabold tabular-nums leading-none" style={{ animation: 'pop 450ms ease-out' }}>
-            {pctTick}
-            <span className="text-base text-[var(--muted)]">%</span>
-          </span>
+        <span className="display text-3xl sm:text-5xl font-extrabold tabular-nums leading-none" style={isWinner ? { animation: live ? 'pop 600ms 600ms both' : undefined } : undefined}>
+          {pctTick}
+          <span className="text-base sm:text-xl text-[var(--muted)]">%</span>
         </span>
       </div>
 
-      <div className="mt-3 h-3.5 w-full rounded-full bg-[var(--line)] overflow-hidden border border-[var(--ink)]/20">
+      <div className="mt-3 h-4 w-full rounded-full bg-[var(--line)] overflow-hidden border border-[var(--ink)]/20">
         <div
-          className="shimmer relative h-full rounded-full overflow-hidden"
-          style={{ width: ready ? `${percentage}%` : '0%', background: color, transition: 'width 1200ms cubic-bezier(.34,1.56,.64,1)' }}
-        />
+          className={`relative h-full rounded-full overflow-hidden ${isWinner ? 'shimmer' : ''}`}
+          style={{ width: live ? `${pct}%` : '0%', background: color, transition: 'width 1400ms cubic-bezier(.34,1.56,.64,1)' }}
+        >
+          <span className="stripes absolute inset-0" />
+        </div>
       </div>
-
-      <Bursts ids={bursts} color={color} className="right-10 top-1/2" />
-    </button>
+    </div>
   )
 }
 
-/* ========================================================================
-   ONE POLL
-   ======================================================================== */
-interface StageProps {
-  poll: Poll
-  pollIndex: number
-  options: Option[]
-  selectedOptionId?: string
-  ready: boolean
-  onVote: (optionId: string) => void
-}
-
-function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }: StageProps) {
+function PollResult({ r, index, ready, revealed, onReveal }: { r: Result; index: number; ready: boolean; revealed: boolean; onReveal: () => void }) {
   const [ref, seen] = useInView<HTMLElement>(0.15)
-  const live = ready && seen
-  const totalVotes = options.reduce((a, o) => a + o.votes, 0)
-  const maxVotes = options.reduce((m, o) => Math.max(m, o.votes), 0)
-  const totalTick = useTicker(live ? totalVotes : 0)
-  const words = poll.question.split(' ')
-
-  const hasVotedAny = Boolean(selectedOptionId)
-
-  const itemProps = (option: Option, i: number): ItemProps => ({
-    option,
-    index: i,
-    color: BAR_COLORS[i % BAR_COLORS.length],
-    percentage: totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0,
-    ratio: maxVotes > 0 ? option.votes / maxVotes : 0,
-    isLeader: maxVotes > 0 && option.votes === maxVotes,
-    isSelected: selectedOptionId === option.id,
-    hasVotedAny,
-    ready: live,
-    onVote: () => onVote(option.id),
-  })
+  const live = ready && seen && revealed
+  const color = BAR_COLORS[index % BAR_COLORS.length]
+  const words = r.poll.question.split(' ')
+  const winnerIds = new Set(r.winners.map((w) => w.id))
+  const totalTick = useTicker(live ? r.total : 0)
+  const colorOf = (id: string) => BAR_COLORS[r.options.findIndex((o) => o.id === id) % BAR_COLORS.length]
 
   return (
-    <section ref={ref} id={`poll-${poll.id}`} data-poll={pollIndex} className="relative border-b-2 border-[var(--ink)]/10">
-      <div className="max-w-6xl mx-auto px-5 sm:px-10 py-20 sm:py-28">
-        <div className="flex flex-col gap-5 mb-10 sm:mb-20 max-w-3xl">
+    <section ref={ref} id={`poll-${r.poll.id}`} className="relative scroll-mt-4 border-b-2 border-[var(--ink)]/10">
+      <div className="max-w-4xl mx-auto px-5 sm:px-10 py-20 sm:py-28">
+        <div className="flex flex-col gap-5 mb-10 sm:mb-14">
           <div
             className="inline-flex w-fit items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-white pl-3 pr-4 py-1.5 shadow-[3px_3px_0_var(--ink)]"
             style={{ animation: seen ? 'rise 600ms both' : undefined, opacity: seen ? undefined : 0 }}
           >
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ff6b9d]" style={{ animation: 'live 1.4s ease-in-out infinite' }} />
-            <span className="text-sm font-bold tabular-nums">
-              {totalTick} {totalVotes === 1 ? 'vote' : 'votes'} live
-              {hasVotedAny && ' · vote locked 🔒'}
-            </span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#7c5cff]" />
+            <span className="text-sm font-bold tabular-nums">{revealed ? `${plural(totalTick, 'vote')} · final` : 'Results hidden'}</span>
           </div>
 
-          <h2 className="display font-extrabold leading-[1.05]" style={{ fontSize: 'clamp(2rem, 5.2vw, 4rem)' }}>
+          <h2 className="display font-extrabold leading-[1.05]" style={{ fontSize: 'clamp(2rem, 5.2vw, 3.6rem)' }}>
             {words.map((w, i) => (
               <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.12em] mr-[0.26em]">
                 <span
-                  className="inline-block cursor-default transition-transform duration-200 hover:-translate-y-1 hover:-rotate-3 hover:text-[#7c5cff]"
+                  className="inline-block"
                   style={{ transform: seen ? undefined : 'translateY(120%)', animation: seen ? `word 800ms ${i * 80}ms cubic-bezier(.2,.9,.3,1) both` : undefined }}
                 >
                   {w}
@@ -1203,7 +602,7 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
           <svg viewBox="0 0 200 14" className="w-40 sm:w-56 -mt-2" fill="none" aria-hidden>
             <path
               d="M2 8 Q 14 0 26 8 T 50 8 T 74 8 T 98 8 T 122 8 T 146 8 T 170 8 T 198 8"
-              stroke={BAR_COLORS[pollIndex % BAR_COLORS.length]}
+              stroke={color}
               strokeWidth="4"
               strokeLinecap="round"
               strokeDasharray="420"
@@ -1213,20 +612,34 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
           </svg>
         </div>
 
-        <div
-          className="hidden md:flex h-[var(--H)] items-stretch justify-center gap-8 lg:gap-12 pt-16"
-          style={{ '--H': 'clamp(560px, 78vh, 720px)' } as CSSProperties}
-        >
-          {options.map((option, i) => (
-            <OptionColumn key={option.id} {...itemProps(option, i)} />
-          ))}
-        </div>
-
-        <div className="md:hidden flex flex-col gap-4">
-          {options.map((option, i) => (
-            <OptionRow key={option.id} {...itemProps(option, i)} />
-          ))}
-        </div>
+        {!revealed ? (
+          <div
+            className="stripes rounded-2xl border-2 border-[var(--ink)] p-8 sm:p-12 flex flex-col items-center justify-center gap-5 text-center"
+            style={{ background: color, boxShadow: '5px 5px 0 var(--ink)' }}
+          >
+            <span className="text-6xl leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
+              🔒
+            </span>
+            <p className="display text-xl sm:text-2xl font-extrabold bg-white border-2 border-[var(--ink)] rounded-full px-5 py-1.5 shadow-[3px_3px_0_var(--ink)]">
+              Results are hidden
+            </p>
+            <button
+              type="button"
+              onClick={onReveal}
+              className="display rounded-full border-2 border-[var(--ink)] bg-[var(--ink)] px-7 py-3 text-lg sm:text-xl font-extrabold text-white outline-none transition-transform duration-200 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#7c5cff]"
+            >
+              Reveal results 🎁
+            </button>
+          </div>
+        ) : r.total === 0 ? (
+          <p className="display text-2xl font-extrabold">No votes were cast for this poll.</p>
+        ) : (
+          <div className="flex flex-col gap-4 sm:gap-5">
+            {r.options.map((o, i) => (
+              <ResultRow key={o.id} option={o} rank={i} total={r.total} color={colorOf(o.id)} isWinner={winnerIds.has(o.id)} live={live} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
@@ -1239,27 +652,23 @@ export default function Home() {
   const [polls, setPolls] = useState<Poll[]>([])
   const [options, setOptions] = useState<Option[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [splashGone, setSplashGone] = useState(false)
-  const [activePoll, setActivePoll] = useState(0)
-  const [toast, setToast] = useState<{ id: number; msg: string } | null>(null)
-
-  // Load initial voted status from browser localStorage so refreshes remember the vote
-  const [userVotes, setUserVotes] = useState<Record<string, string>>(() => {
-    if (typeof window === 'undefined') return {}
-    try {
-      const saved = localStorage.getItem('vibe_vote_user_votes')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
-
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Poll ids whose winner has been revealed (unlocks both the card and its full breakdown)
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set())
 
   const ready = splashGone
   const handleSplashDone = useCallback(() => setSplashGone(true), [])
+  const handleReveal = useCallback((id: string) => {
+    setRevealedIds((prev) => {
+      if (prev.has(id)) return prev
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }, [])
 
-  // Browser tab title + emoji icon (edit TAB_TITLE / TAB_EMOJI at the top of this file)
+  // Browser tab title + emoji icon
   useEffect(() => {
     document.title = TAB_TITLE
     const href = `data:image/svg+xml,${encodeURIComponent(
@@ -1275,79 +684,28 @@ export default function Home() {
     link.href = href
   }, [])
 
+  // Final tally: read once from the database (voting is closed, so no realtime needed)
   useEffect(() => {
     async function fetchData() {
-      const { data: pollsData } = await supabase.from('polls').select('*')
-      const { data: optionsData } = await supabase.from('options').select('*')
-      if (pollsData) setPolls(pollsData)
-      if (optionsData) setOptions(optionsData)
+      const [p, o] = await Promise.all([supabase.from('polls').select('*'), supabase.from('options').select('*')])
+      if (p.error || o.error) setError(true)
+      if (p.data) setPolls(p.data)
+      if (o.data) setOptions(o.data)
       setLoading(false)
     }
     fetchData()
-
-    const channel = supabase
-      .channel('realtime-options')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'options' }, (payload) => {
-        setOptions((prev) => prev.map((opt) => (opt.id === payload.new.id ? { ...opt, votes: payload.new.votes } : opt)))
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
   }, [])
 
-  useEffect(() => {
-    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-poll]'))
-    if (!els.length) return
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && setActivePoll(Number((e.target as HTMLElement).dataset.poll))),
-      { threshold: 0.5 }
-    )
-    els.forEach((el) => io.observe(el))
-    return () => io.disconnect()
-  }, [polls.length, splashGone])
-
-  const showToast = (msg: string) => {
-    if (toastTimer.current !== null) {
-      clearTimeout(toastTimer.current)
+  const results: Result[] = polls.map((poll) => {
+    const opts = byVotes(options.filter((o) => o.poll_id === poll.id))
+    const max = opts.length ? opts[0].votes : 0
+    return {
+      poll,
+      options: opts,
+      total: opts.reduce((a, o) => a + o.votes, 0),
+      winners: max > 0 ? opts.filter((o) => o.votes === max) : [],
     }
-    setToast({ id: Date.now(), msg })
-    toastTimer.current = setTimeout(() => setToast(null), 1900)
-  }
-
-  const adjustLocal = (optionId: string, delta: number) =>
-    setOptions((prev) => prev.map((o) => (o.id === optionId ? { ...o, votes: Math.max(0, o.votes + delta) } : o)))
-
-  // Permanent Vote Cast (No un-voting or switching allowed once cast)
-  const handleVoteToggle = async (pollId: string, optionId: string) => {
-    // If the user already voted for this poll, block any further changes completely
-    if (userVotes[pollId]) {
-      showToast('your vote is already locked in 🔒')
-      return
-    }
-
-    const current = options.find((o) => o.id === optionId)
-    if (!current) return
-    navigator.vibrate?.(14)
-
-    // Save choice permanently to state and localStorage
-    const newVotesMap = { ...userVotes, [pollId]: optionId }
-    setUserVotes(newVotesMap)
-    try {
-      localStorage.setItem('vibe_vote_user_votes', JSON.stringify(newVotesMap))
-    } catch {}
-
-    adjustLocal(optionId, 1)
-    showToast(TOASTS[Math.floor(Math.random() * TOASTS.length)])
-
-    await supabase
-      .from('options')
-      .update({ votes: current.votes + 1 })
-      .eq('id', optionId)
-  }
-
-  const allVotes = options.reduce((a, o) => a + o.votes, 0)
+  })
 
   return (
     <main className="vote-root min-h-screen relative">
@@ -1357,39 +715,44 @@ export default function Home() {
 
       <Backdrop />
       <ScrollBar />
-      <SparkleTrail />
+      <Shower on={ready} />
 
       <div className="relative z-10">
         <BrandChip />
-        <PollDots polls={polls} active={activePoll} />
 
-        {/* LANDING PAGE */}
-        <Landing ready={ready} pollCount={polls.length} totalVotes={allVotes} />
+        <Hero ready={ready} />
 
-        {/* VOTING SECTION (the landing button scrolls here) */}
-        <div id="vote" className="scroll-mt-0">
-          {!loading && polls.length === 0 && (
-            <div className="min-h-screen flex items-center justify-center p-10">
-              <p className="display text-3xl sm:text-5xl text-center font-extrabold">No polls yet. Check back soon ✨</p>
-            </div>
-          )}
+        {!loading && error && (
+          <div className="min-h-[50vh] flex items-center justify-center p-10">
+            <p className="display text-2xl sm:text-4xl text-center font-extrabold">Couldn’t load the results. Refresh to try again.</p>
+          </div>
+        )}
 
-          {polls.map((poll, i) => (
-            <PollStage
-              key={poll.id}
-              poll={poll}
-              pollIndex={i}
-              options={sortOptions(options.filter((o) => o.poll_id === poll.id))}
-              selectedOptionId={userVotes[poll.id]}
-              ready={ready}
-              onVote={(optionId) => handleVoteToggle(poll.id, optionId)}
-            />
-          ))}
-        </div>
+        {!loading && !error && polls.length === 0 && (
+          <div className="min-h-[50vh] flex items-center justify-center p-10">
+            <p className="display text-3xl sm:text-5xl text-center font-extrabold">No results yet ✨</p>
+          </div>
+        )}
+
+        {results.length > 0 && <WinnersWall results={results} ready={ready} revealedIds={revealedIds} onReveal={handleReveal} />}
+
+        {results.map((r, i) => (
+          <PollResult
+            key={r.poll.id}
+            r={r}
+            index={i}
+            ready={ready}
+            revealed={revealedIds.has(r.poll.id)}
+            onReveal={() => handleReveal(r.poll.id)}
+          />
+        ))}
+
+        {results.length > 0 && (
+          <footer className="max-w-4xl mx-auto px-5 sm:px-10 py-20 text-center">
+            <p className="display text-2xl sm:text-4xl font-extrabold">{FOOTER_TEXT}</p>
+          </footer>
+        )}
       </div>
-
-      <BackToTop />
-      <Toast toast={toast} />
     </main>
   )
 }

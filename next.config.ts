@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   output: "export",
 
   // Allow mobile device to access Next.js dev resources
-  allowedDevOrigins: ["192.168.0.113"],
+  allowedDevOrigins: ["192.168.1.15"],
 
   // GitHub Pages does not support Next.js image optimization
   images: {
