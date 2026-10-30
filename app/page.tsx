@@ -23,11 +23,26 @@ interface Option {
 /* ========================================================================
    LOOK & FEEL — EDIT HERE
    ======================================================================== */
-const BRAND = 'vibe vote' // shown in splash + top-left chip
+
+// ✏️ CHANGE THE BROWSER TAB TITLE HERE (replaces "Create Next App")
+const TAB_TITLE = 'Siehz | live vote'
+
+// ✏️ CHANGE THE BROWSER TAB ICON HERE (any single emoji)
+const TAB_EMOJI = '✨'
+
+const BRAND = 'Siehz' // shown in splash + top-left chip
+
+// ✏️ LANDING PAGE TEXT — change anything here
+const LANDING_EYEBROW = 'ECE Department'
+const LANDING_SUBTEXT = 'Pick your choices, make them count, and watch the next semester’s lineup take shape in real time.'
+const LANDING_BUTTON = 'Drop Your Vote'
+
 const BAR_COLORS = ['#ff6b9d', '#7c5cff', '#ffb020', '#19c3a0', '#3b9cff', '#ff7a45']
 const BURST_EMOJI = ['✨', '💖', '🔥', '⭐', '🎉']
+const TRAIL_SYMBOLS = ['✦', '✧', '♥', '✨', '●']
 const SPLASH_MESSAGES = ['warming up the votes', 'stacking the bars', 'sprinkling sparkle', 'almost there']
 const TOASTS = ['vote locked in ✨', 'bold pick 🔥', 'noted 💖', 'the people have spoken 🎉']
+const MARQUEE_WORDS = ['vote now', 'pick your fighter', 'live results', 'no cap', 'tap to vote', 'main character energy', 'the people have spoken']
 const SHAPES = [
   { c: '✦', x: '6%', y: '16%', s: 44, d: 90, t: 9 },
   { c: '✿', x: '90%', y: '10%', s: 58, d: -120, t: 11 },
@@ -41,6 +56,8 @@ const SHAPES = [
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap');
+
+html { scroll-behavior: smooth; }
 
 .vote-root {
   --ink: #15132b; --muted: #6b6a80; --paper: #f7f7fc; --line: #e3e2f0;
@@ -90,7 +107,17 @@ const CSS = `
 @keyframes contentOut { to { opacity: 0; transform: scale(.92) translateY(-20px) } }
 @keyframes splashFloat { 0%,100% { transform: translateY(0) rotate(-6deg) } 50% { transform: translateY(-22px) rotate(8deg) } }
 
+/* landing page */
+@keyframes marquee   { to { transform: translateX(-50%) } }
+@keyframes wave      { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-0.14em) } }
+@keyframes nudge     { 0%,100% { transform: translateX(0) } 50% { transform: translateX(7px) } }
+@keyframes scrollDot { 0% { transform: translateY(0); opacity: 1 } 70% { transform: translateY(14px); opacity: 0 } 100% { transform: translateY(0); opacity: 0 } }
+@keyframes stickerWob { 0%,100% { transform: rotate(-6deg) translateY(0) } 50% { transform: rotate(5deg) translateY(-10px) } }
+@keyframes trail     { from { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg) } to { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + 46px)) scale(.3) rotate(120deg) } }
+@keyframes hueGlow   { 0%,100% { box-shadow: 6px 6px 0 #ff6b9d } 33% { box-shadow: 6px 6px 0 #7c5cff } 66% { box-shadow: 6px 6px 0 #19c3a0 } }
+
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 `
@@ -100,6 +127,8 @@ const CSS = `
    ======================================================================== */
 const sortOptions = (arr: Option[]) =>
   [...arr].sort((a, b) => a.text.localeCompare(b.text, undefined, { numeric: true, sensitivity: 'base' }))
+
+const scrollToVote = () => document.getElementById('vote')?.scrollIntoView({ behavior: 'smooth' })
 
 // Smooth count-up / count-down
 function useTicker(target: number, duration = 900) {
@@ -445,12 +474,17 @@ function ScrollBar() {
 
 function BrandChip() {
   return (
-    <div className="fixed top-4 left-4 z-40 inline-flex items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-white/80 backdrop-blur px-3.5 py-1.5 shadow-[3px_3px_0_var(--ink)]">
+    <button
+      type="button"
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      aria-label="Back to top"
+      className="fixed top-4 left-4 z-40 inline-flex items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-white/80 backdrop-blur px-3.5 py-1.5 shadow-[3px_3px_0_var(--ink)] transition-transform hover:-translate-y-0.5 hover:-rotate-2 active:scale-95"
+    >
       <span className="relative w-3.5 h-3.5 rounded-full bg-[#7c5cff]">
         <span className="absolute inset-0 rounded-full bg-[#7c5cff]" style={{ animation: 'ring 1.8s ease-out infinite' }} />
       </span>
       <span className="display font-extrabold text-sm">{BRAND}</span>
-    </div>
+    </button>
   )
 }
 
@@ -485,6 +519,369 @@ function PollDots({ polls, active }: { polls: Poll[]; active: number }) {
         />
       ))}
     </nav>
+  )
+}
+
+// Sparkles that follow the cursor (mouse / trackpad only)
+function SparkleTrail() {
+  const [items, setItems] = useState<{ id: number; x: number; y: number; s: string; c: string; dx: number }[]>([])
+  const last = useRef(0)
+
+  useEffect(() => {
+    if (!window.matchMedia('(pointer: fine)').matches) return
+    const onMove = (e: PointerEvent) => {
+      const now = performance.now()
+      if (now - last.current < 55) return
+      last.current = now
+      const id = now + Math.random()
+      const item = {
+        id,
+        x: e.clientX,
+        y: e.clientY,
+        s: TRAIL_SYMBOLS[Math.floor(Math.random() * TRAIL_SYMBOLS.length)],
+        c: BAR_COLORS[Math.floor(Math.random() * BAR_COLORS.length)],
+        dx: (Math.random() - 0.5) * 50,
+      }
+      setItems((i) => [...i.slice(-16), item])
+      setTimeout(() => setItems((i) => i.filter((x) => x.id !== id)), 800)
+    }
+    window.addEventListener('pointermove', onMove)
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[60] overflow-hidden" aria-hidden>
+      {items.map((p) => (
+        <span
+          key={p.id}
+          className="absolute text-lg leading-none"
+          style={
+            {
+              left: p.x,
+              top: p.y,
+              color: p.c,
+              '--dx': `${p.dx}px`,
+              animation: 'trail 800ms ease-out forwards',
+            } as CSSProperties
+          }
+        >
+          {p.s}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function BackToTop() {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 800)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return (
+    <button
+      type="button"
+      aria-label="Back to top"
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      className="display fixed bottom-6 right-5 z-40 w-12 h-12 rounded-full border-2 border-[var(--ink)] bg-white text-xl font-extrabold shadow-[3px_3px_0_var(--ink)] transition-all duration-300 hover:-translate-y-1 active:scale-90"
+      style={{ opacity: show ? 1 : 0, transform: show ? undefined : 'translateY(24px) scale(.6)', pointerEvents: show ? 'auto' : 'none' }}
+    >
+      ↑
+    </button>
+  )
+}
+
+/* ========================================================================
+   LANDING PAGE (shows after the loading screen)
+   ======================================================================== */
+function Marquee() {
+  const row = (
+    <div className="flex shrink-0 items-center">
+      {MARQUEE_WORDS.map((w) => (
+        <span key={w} className="display flex items-center text-lg sm:text-2xl font-extrabold text-white whitespace-nowrap">
+          <span className="px-6 sm:px-10">{w}</span>
+          <span style={{ color: '#ffb020' }}>✦</span>
+        </span>
+      ))}
+    </div>
+  )
+  return (
+    <div className="overflow-hidden bg-[var(--ink)] py-3 sm:py-4">
+      <div className="flex w-max" style={{ animation: 'marquee 40s linear infinite' }}>
+        {row}
+        {row}
+      </div>
+    </div>
+  )
+}
+
+// Fake little chart that keeps moving, so the landing page feels alive
+function DemoChart({ live }: { live: boolean }) {
+  const [vals, setVals] = useState([46, 30, 20, 12])
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!live) return
+    const t = setInterval(() => {
+      setVals((v) => v.map((x) => Math.max(6, Math.min(70, x + (Math.random() * 34 - 17)))))
+    }, 1700)
+    return () => clearInterval(t)
+  }, [live])
+
+  const total = vals.reduce((a, b) => a + b, 0)
+  const max = Math.max(...vals)
+
+  const handleMove = (e: RPointerEvent<HTMLDivElement>) => {
+    const el = ref.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    el.style.setProperty('--rx', `${(-((e.clientY - r.top) / r.height - 0.5) * 10).toFixed(1)}deg`)
+    el.style.setProperty('--ry', `${(((e.clientX - r.left) / r.width - 0.5) * 14).toFixed(1)}deg`)
+  }
+  const handleLeave = () => {
+    ref.current?.style.setProperty('--rx', '0deg')
+    ref.current?.style.setProperty('--ry', '0deg')
+  }
+
+  return (
+    <div className="relative w-full max-w-md mx-auto lg:mx-0 lg:ml-auto" onPointerMove={handleMove} onPointerLeave={handleLeave}>
+      {/* floating stickers */}
+      <span
+        className="display absolute -top-6 -left-3 sm:-left-8 z-20 rounded-full border-2 border-[var(--ink)] bg-[#ffb020] px-4 py-1.5 text-sm sm:text-base font-extrabold shadow-[3px_3px_0_var(--ink)]"
+        style={{ animation: 'stickerWob 5s ease-in-out infinite' }}
+      >
+        no cap 💅
+      </span>
+      <span
+        className="display absolute -bottom-5 -right-2 sm:-right-6 z-20 rounded-full border-2 border-[var(--ink)] bg-[#19c3a0] px-4 py-1.5 text-sm sm:text-base font-extrabold shadow-[3px_3px_0_var(--ink)]"
+        style={{ animation: 'stickerWob 6s ease-in-out -2s infinite' }}
+      >
+        live ✨
+      </span>
+      <span
+        className="absolute top-1/2 -right-4 sm:-right-10 z-20 text-4xl sm:text-5xl"
+        style={{ animation: 'bob 3s ease-in-out infinite' }}
+      >
+        🔥
+      </span>
+
+      <div
+        ref={ref}
+        className="relative rounded-[2rem] border-2 border-[var(--ink)] bg-white p-5 sm:p-7"
+        style={{
+          transform: 'perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))',
+          transition: 'transform 250ms ease-out',
+          boxShadow: '8px 8px 0 var(--ink)',
+        }}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <span className="display text-lg font-extrabold">live preview</span>
+          <span className="flex items-center gap-1.5 text-xs font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ff6b9d]" style={{ animation: 'live 1.4s ease-in-out infinite' }} />
+            moving now
+          </span>
+        </div>
+
+        <div className="flex items-end justify-between gap-3 sm:gap-5 h-56 sm:h-72 pb-1 border-b-[3px] border-[var(--ink)]">
+          {vals.map((v, i) => {
+            const isLeader = v === max
+            return (
+              <div key={i} className="flex-1 h-full flex flex-col justify-end items-center">
+                <div className="relative text-center mb-1.5">
+                  {isLeader && (
+                    <span className="absolute left-1/2 -translate-x-1/2 -top-6 text-xl leading-none" style={{ animation: 'bob 2.4s ease-in-out infinite' }}>
+                      👑
+                    </span>
+                  )}
+                  <span className="display text-lg sm:text-2xl font-extrabold tabular-nums">
+                    {Math.round((v / total) * 100)}
+                    <span className="text-xs text-[var(--muted)]">%</span>
+                  </span>
+                </div>
+                <div
+                  className="relative w-full overflow-hidden rounded-t-xl border-2 border-b-0 border-[var(--ink)]"
+                  style={{
+                    background: BAR_COLORS[i],
+                    height: live ? `${(v / max) * 72}%` : '4%',
+                    transition: 'height 1400ms cubic-bezier(.34,1.56,.64,1)',
+                  }}
+                >
+                  <span className="stripes absolute inset-0" />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex justify-between gap-3 sm:gap-5 mt-4">
+          {['A', 'B', 'C', 'D'].map((l, i) => (
+            <span
+              key={l}
+              className="display flex-1 text-center rounded-full border-2 border-[var(--ink)] py-1 text-sm sm:text-lg font-extrabold shadow-[2px_2px_0_var(--ink)]"
+              style={{ background: BAR_COLORS[i], transform: `rotate(${i % 2 ? 2 : -2}deg)` }}
+            >
+              {l}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Landing({ ready, pollCount, totalVotes }: { ready: boolean; pollCount: number; totalVotes: number }) {
+  const pollsTick = useTicker(ready ? pollCount : 0)
+  const votesTick = useTicker(ready ? totalVotes : 0)
+  const { bursts, fire } = useBursts()
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  // Button drifts toward the cursor (magnetic)
+  const handleMove = (e: RPointerEvent<HTMLDivElement>) => {
+    const el = btnRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const dx = e.clientX - (r.left + r.width / 2)
+    const dy = e.clientY - (r.top + r.height / 2)
+    el.style.transform = `translate(${(dx * 0.18).toFixed(1)}px, ${(dy * 0.28).toFixed(1)}px)`
+  }
+  const handleLeave = () => {
+    if (btnRef.current) btnRef.current.style.transform = 'translate(0,0)'
+  }
+
+  const handleStart = () => {
+    fire()
+    navigator.vibrate?.(14)
+    setTimeout(scrollToVote, 450)
+  }
+
+  // Each hero word: text, optional sticker color, optional wavy letters
+  const HERO: { w: string; sticker?: string; wavy?: boolean }[] = [
+    { w: 'One Vision,' },
+    { w: 'One Team,' },
+    { w: 'One', sticker: '#ffb020' },
+    { w: 'Leader', wavy: true },
+  ]
+
+  const reveal = (delay: number): CSSProperties => ({
+    animation: ready ? `rise 800ms ${delay}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
+    opacity: ready ? undefined : 0,
+  })
+
+  return (
+    <section id="home" className="relative min-h-screen flex flex-col">
+      <div className="flex-1 flex items-center">
+        <div className="w-full max-w-6xl mx-auto px-5 sm:px-10 pt-28 pb-16 sm:pt-32 sm:pb-24 grid lg:grid-cols-[1.15fr_1fr] gap-16 lg:gap-12 items-center">
+          {/* LEFT: copy */}
+          <div>
+            <div
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-white pl-3 pr-4 py-1.5 shadow-[3px_3px_0_var(--ink)]"
+              style={reveal(0)}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-[#19c3a0]" style={{ animation: 'live 1.4s ease-in-out infinite' }} />
+              <span className="text-sm font-bold">{LANDING_EYEBROW}</span>
+            </div>
+
+            <h1
+              className="display font-extrabold leading-[0.98] mt-8 sm:mt-10"
+              style={{ fontSize: 'clamp(3.2rem, 9.5vw, 7.5rem)' }}
+            >
+              {HERO.map((h, i) =>
+                h.sticker ? (
+                  <span
+                    key={i}
+                    className="inline-block align-bottom rounded-[0.3em] border-[3px] border-[var(--ink)] px-[0.18em] mr-[0.2em] -rotate-2 shadow-[5px_5px_0_var(--ink)]"
+                    style={{ background: h.sticker, ...reveal(300 + i * 110) }}
+                  >
+                    {h.w}
+                  </span>
+                ) : (
+                  <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.12em] mr-[0.24em]">
+                    <span
+                      className="inline-block"
+                      style={{
+                        transform: ready ? undefined : 'translateY(120%)',
+                        animation: ready ? `word 900ms ${300 + i * 110}ms cubic-bezier(.2,.9,.3,1) both` : undefined,
+                      }}
+                    >
+                      {h.wavy
+                        ? h.w.split('').map((ch, k) => (
+                            <span
+                              key={k}
+                              className="inline-block"
+                              style={{ color: BAR_COLORS[k % BAR_COLORS.length], animation: `wave 1.6s ease-in-out ${k * 0.12}s infinite` }}
+                            >
+                              {ch}
+                            </span>
+                          ))
+                        : h.w}
+                    </span>
+                  </span>
+                )
+              )}
+            </h1>
+
+            <p className="mt-8 sm:mt-10 max-w-md text-lg sm:text-xl font-medium text-[var(--muted)] leading-relaxed" style={reveal(900)}>
+              {LANDING_SUBTEXT}
+            </p>
+
+            {/* BUTTON */}
+            <div className="mt-10 sm:mt-12 flex flex-wrap items-center gap-6" style={reveal(1050)}>
+              <div className="relative p-6 -m-6" onPointerMove={handleMove} onPointerLeave={handleLeave}>
+                <button
+                  ref={btnRef}
+                  type="button"
+                  onClick={handleStart}
+                  className="shimmer group relative overflow-hidden display inline-flex items-center gap-3 rounded-full border-2 border-[var(--ink)] bg-[var(--ink)] px-8 py-4 sm:px-10 sm:py-5 text-xl sm:text-2xl font-extrabold text-white outline-none transition-[transform,box-shadow] duration-200 hover:scale-105 active:scale-95 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#7c5cff]"
+                  style={{ animation: 'hueGlow 4s linear infinite' }}
+                >
+                  <span className="relative z-10">{LANDING_BUTTON}</span>
+                  <span className="relative z-10 text-2xl sm:text-3xl" style={{ animation: 'nudge 1.2s ease-in-out infinite' }}>
+                    →
+                  </span>
+                </button>
+                <Bursts ids={bursts} color="#ff6b9d" className="left-1/2 top-1/2" />
+              </div>
+
+              {/* LIVE STATS */}
+              <div className="flex items-center gap-3">
+                <span className="rounded-full border-2 border-[var(--ink)] bg-white px-4 py-1.5 text-sm font-bold tabular-nums shadow-[3px_3px_0_var(--ink)]">
+                  {pollsTick} {pollCount === 1 ? 'poll' : 'polls'}
+                </span>
+                <span className="rounded-full border-2 border-[var(--ink)] bg-white px-4 py-1.5 text-sm font-bold tabular-nums shadow-[3px_3px_0_var(--ink)]">
+                  {votesTick} {totalVotes === 1 ? 'vote' : 'votes'} cast
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: live preview */}
+          <div style={reveal(700)}>
+            <DemoChart live={ready} />
+          </div>
+        </div>
+      </div>
+
+      {/* SCROLL CUE */}
+      <button
+        type="button"
+        onClick={scrollToVote}
+        aria-label="Scroll to voting"
+        className="mx-auto mb-8 flex flex-col items-center gap-2 text-xs font-bold text-[var(--muted)] transition-transform hover:translate-y-1"
+        style={reveal(1400)}
+      >
+        scroll
+        <span className="relative block w-6 h-10 rounded-full border-2 border-[var(--ink)] bg-white/70">
+          <span
+            className="absolute left-1/2 top-2 w-1.5 h-1.5 -ml-[3px] rounded-full bg-[var(--ink)]"
+            style={{ animation: 'scrollDot 1.6s ease-in-out infinite' }}
+          />
+        </span>
+      </button>
+
+      <Marquee />
+    </section>
   )
 }
 
@@ -790,7 +1187,7 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
             </span>
           </div>
 
-          <h1 className="display font-extrabold leading-[1.05]" style={{ fontSize: 'clamp(2rem, 5.2vw, 4rem)' }}>
+          <h2 className="display font-extrabold leading-[1.05]" style={{ fontSize: 'clamp(2rem, 5.2vw, 4rem)' }}>
             {words.map((w, i) => (
               <span key={i} className="inline-block overflow-hidden align-bottom pb-[0.12em] mr-[0.26em]">
                 <span
@@ -801,7 +1198,7 @@ function PollStage({ poll, pollIndex, options, selectedOptionId, ready, onVote }
                 </span>
               </span>
             ))}
-          </h1>
+          </h2>
 
           <svg viewBox="0 0 200 14" className="w-40 sm:w-56 -mt-2" fill="none" aria-hidden>
             <path
@@ -845,7 +1242,7 @@ export default function Home() {
   const [splashGone, setSplashGone] = useState(false)
   const [activePoll, setActivePoll] = useState(0)
   const [toast, setToast] = useState<{ id: number; msg: string } | null>(null)
-  
+
   // Load initial voted status from browser localStorage so refreshes remember the vote
   const [userVotes, setUserVotes] = useState<Record<string, string>>(() => {
     if (typeof window === 'undefined') return {}
@@ -861,6 +1258,22 @@ export default function Home() {
 
   const ready = splashGone
   const handleSplashDone = useCallback(() => setSplashGone(true), [])
+
+  // Browser tab title + emoji icon (edit TAB_TITLE / TAB_EMOJI at the top of this file)
+  useEffect(() => {
+    document.title = TAB_TITLE
+    const href = `data:image/svg+xml,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">${TAB_EMOJI}</text></svg>`
+    )}`
+    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']")
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.head.appendChild(link)
+    }
+    link.type = 'image/svg+xml'
+    link.href = href
+  }, [])
 
   useEffect(() => {
     async function fetchData() {
@@ -934,6 +1347,8 @@ export default function Home() {
       .eq('id', optionId)
   }
 
+  const allVotes = options.reduce((a, o) => a + o.votes, 0)
+
   return (
     <main className="vote-root min-h-screen relative">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -942,30 +1357,38 @@ export default function Home() {
 
       <Backdrop />
       <ScrollBar />
+      <SparkleTrail />
 
       <div className="relative z-10">
         <BrandChip />
         <PollDots polls={polls} active={activePoll} />
 
-        {!loading && polls.length === 0 && (
-          <div className="min-h-screen flex items-center justify-center p-10">
-            <p className="display text-3xl sm:text-5xl text-center font-extrabold">No polls yet. Check back soon ✨</p>
-          </div>
-        )}
+        {/* LANDING PAGE */}
+        <Landing ready={ready} pollCount={polls.length} totalVotes={allVotes} />
 
-        {polls.map((poll, i) => (
-          <PollStage
-            key={poll.id}
-            poll={poll}
-            pollIndex={i}
-            options={sortOptions(options.filter((o) => o.poll_id === poll.id))}
-            selectedOptionId={userVotes[poll.id]}
-            ready={ready}
-            onVote={(optionId) => handleVoteToggle(poll.id, optionId)}
-          />
-        ))}
+        {/* VOTING SECTION (the landing button scrolls here) */}
+        <div id="vote" className="scroll-mt-0">
+          {!loading && polls.length === 0 && (
+            <div className="min-h-screen flex items-center justify-center p-10">
+              <p className="display text-3xl sm:text-5xl text-center font-extrabold">No polls yet. Check back soon ✨</p>
+            </div>
+          )}
+
+          {polls.map((poll, i) => (
+            <PollStage
+              key={poll.id}
+              poll={poll}
+              pollIndex={i}
+              options={sortOptions(options.filter((o) => o.poll_id === poll.id))}
+              selectedOptionId={userVotes[poll.id]}
+              ready={ready}
+              onVote={(optionId) => handleVoteToggle(poll.id, optionId)}
+            />
+          ))}
+        </div>
       </div>
 
+      <BackToTop />
       <Toast toast={toast} />
     </main>
   )
